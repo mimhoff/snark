@@ -132,7 +132,7 @@ int main( int ac, char** av )
         bool verbose = options.exists( "--verbose,-v" );
         snark::graphics::plotting::stream::config_t config( options );
         const std::vector< std::string >& unnamed = options.unnamed( "--no-stdin,--verbose,-v,--flush", "--.*,-[a-z].*" );
-        boost::optional< unsigned int > stdin_index;
+        boost::optional< unsigned int > stdin_index = boost::make_optional< unsigned int >( false, 0 );
         for( unsigned int i = 0; i < unnamed.size(); ++i ) { if( unnamed[i] == "-" || unnamed[i].substr( 0, 2 ) == "-;" ) { stdin_index = i; break; } }
         QApplication a( ac, av );
         snark::graphics::plotting::plot plot( options.value( "--frames-per-second,--fps", 25 ) );
