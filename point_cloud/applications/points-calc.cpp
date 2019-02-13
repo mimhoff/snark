@@ -102,6 +102,7 @@ static void usage( bool verbose = false )
     std::cerr << "    plane-intersection-with-trajectory" << std::endl;
     std::cerr << "    project-onto-line" << std::endl;
     std::cerr << "    project-onto-plane" << std::endl;
+    std::cerr << "    reduce" << std::endl;
     std::cerr << "    thin" << std::endl;
     std::cerr << "    trajectory-chord,chord" << std::endl;
     std::cerr << "    trajectory-cumulative-distance,cumulative-distance" << std::endl;
@@ -274,6 +275,10 @@ static void usage( bool verbose = false )
     std::cerr << std::endl;
     std::cerr << "        options:" << std::endl;
     std::cerr << "            --point,--to=<x>,<y>,<z>" << std::endl;
+    std::cerr << std::endl;
+    std::cerr << "    reduce" << std::endl;
+    std::cerr << "        reduce the points in a voxel to a single point at its center" << std::endl;
+    std::cerr << "            --threshold,--min-points=<count>; ignore the voxel with less than this amount of points." << std::endl;
     std::cerr << std::endl;
     std::cerr << snark::points_calc::project::onto_line::traits::usage() << std::endl;
     std::cerr << snark::points_calc::project::onto_plane::traits::usage() << std::endl;
@@ -564,7 +569,7 @@ static void process( std::deque< record_t >& que
 {
     if( verbose ) { std::cerr << "points-calc: loading " << que.size() << " points into grid..." << std::endl; }
 
-    typedef std::multimap< double, record_t* > voxel_t; 
+    typedef std::multimap< double, record_t* > voxel_t;
     typedef snark::voxel_map< voxel_t, 3 > grid_t;
 
     grid_t grid( extents.min(), resolution );
@@ -919,7 +924,7 @@ static void trajectory_discretise( double step, double tolerance )
             previous_record = istream.last();
         }
         if( previous_point ) { ostream.append( previous_record, *previous_point ); }
-        
+
 //         while( istream.ready() || ( std::cin.good() && !std::cin.eof() ) )
 //         {
 //             const Eigen::Vector3d* current_point = istream.read();
@@ -982,7 +987,7 @@ struct pose
     snark::roll_pitch_yaw orientation;
     pose(): coordinates( 0, 0, 0 ), orientation( 0, 0, 0 ) {}
 };
-    
+
 struct traits
 {
     typedef snark::points_calc::integrate_frame::pose input;
@@ -1019,7 +1024,7 @@ struct traits
 };
 
 } } } // namespace snark { namespace points_calc { integrate_frame
-    
+
 namespace thin_operation {
 
 typedef point_with_block point;
@@ -1028,7 +1033,7 @@ struct record
 {
     thin_operation::point point;
     std::string line;
-    
+
     record() {}
     record( const thin_operation::point& p, const std::string& line ) : point( p ), line( line ) {}
 };
@@ -1109,6 +1114,87 @@ int process( double resolution, const T& empty_thinner, const comma::csv::option
 
 } // namespace thin_operation {
 
+namespace reduce_operation {
+
+
+struct input_record
+{
+    point_with_block point;
+    std::string line;
+
+    input_record() = default;
+    input_record( point_with_block const& p, comma::csv::input_stream< point_with_block > const& istrm ) : point( p ), line()
+    {
+        if( csv.binary() )
+        {
+            line.resize( csv.format().size() );
+            ::memcpy( &line[ 0 ], istrm.binary().last(), csv.format().size() );
+        }
+        else
+        {
+            line = comma::join( istrm.ascii().last(), csv.delimiter );
+        }
+    }
+};
+
+struct grid_record
+{
+    comma::uint64 count;
+    input_record const* reference_record;
+    double center_distance;
+    boost::optional< Eigen::Vector3d > center;
+
+    grid_record() : count( 0 ), reference_record( nullptr ), center_distance( 0.0 ), center() {}
+};
+
+using grid_t =  snark::voxel_map< grid_record, 3 >;
+
+void update_grid_record( grid_t const& grid, grid_t::iterator& git, input_record const*const new_record )
+{
+    git->second.count++;
+    if( git->second.center )
+    {
+        if( ( *git->second.center - new_record->point.coordinates ).norm() < git->second.center_distance )
+        {
+            git->second.reference_record = new_record;
+            git->second.center_distance = ( *git->second.center - new_record->point.coordinates ).norm();
+        }
+    }
+    else
+    {
+        git->second.center = Eigen::Vector3d( grid.resolution().x() * git->first[ 0 ] + grid.origin().x() + grid.resolution().x() / 2
+                                , grid.resolution().y() * git->first[ 1 ] + grid.origin().y() + grid.resolution().y() / 2
+                                , grid.resolution().z() * git->first[ 2 ] + grid.origin().z() + grid.resolution().z() / 2 );
+        git->second.center_distance = ( *git->second.center - new_record->point.coordinates ).norm();
+        git->second.reference_record = new_record;
+    }
+}
+
+static void process( std::vector< input_record >& records
+                   , snark::math::closed_interval< double, 3 > const&  extents
+                   , Eigen::Vector3d const&  resolution
+                   , comma::uint64 threshold )
+{
+    grid_t grid( extents.min(), resolution );
+    for( std::size_t i = 0; i < records.size(); ++i )
+    {
+        auto git = grid.touch_at( records[i].point.coordinates );
+        update_grid_record( grid, git, &records[ i ] );
+    }
+
+    for( grid_t::iterator it = grid.begin(); it != grid.end(); ++it )
+    {
+        if( it->second.count >= threshold )
+        {
+            std::cout.write( &it->second.reference_record->line[0], it->second.reference_record->line.size() );
+            if( !csv.binary() ) {  std::cout << std::endl; }
+            else if( csv.flush ) { std::cout.flush(); }
+        }
+    }
+}
+
+} // reduce_operation
+
 namespace trajectory_chord_operation {
 
 
@@ -1162,7 +1248,7 @@ struct point
     comma::uint32 id;
     comma::uint32 block;
 //     uint8_t mask;
-    
+
     point() : coordinates( 0, 0, 0 ), scalar( 0 ), id( 0 ), block( 0 ) {}
     point( const Eigen::Vector3d& coordinates, double scalar ) : coordinates( coordinates ), scalar( scalar ), id( 0 ), block( 0 ) {}
 };
@@ -1183,9 +1269,9 @@ struct record // todo: it's a mess; remove code duplication: all information can
     comma::uint32 reference_id;
     double distance;
     record* reference_record;
-    
+
     static comma::uint32 invalid_id;
-    
+
     record() : is_extremum( true ), reference_id( invalid_id ), distance( std::numeric_limits< double >::max() ), reference_record( NULL ) {}
     record( const local_operation::point& p, const std::string& line ) : point( p ), line( line ), is_extremum( true ), reference_id( invalid_id ), distance( std::numeric_limits< double >::max() ), reference_record( NULL ) {}
     local_operation::output output( bool force = true ) const { return !force && reference_id == invalid_id ? local_operation::output( invalid_id, 0 ) : local_operation::output( reference_record->point.id, ( reference_record->point.coordinates - point.coordinates ).norm() ); }
@@ -1257,7 +1343,7 @@ static void process_nearest_extremum_block( std::deque< local_operation::record 
 
     grid_t grid( extents.min(), resolution );
     for( std::size_t i = 0; i < records.size(); ++i )
-    { 
+    {
 //         if(records[i].point.mask )
         ( grid.touch_at( records[i].point.coordinates ) )->second.push_back( &records[i] );
     }
@@ -1375,7 +1461,7 @@ static void output_nearest_extremum_block( const std::deque< local_operation::re
 namespace snark { namespace points_calc { namespace trajectory_partitions {
 
 typedef point_with_direction input;
-    
+
 struct output { comma::uint32 id; output( comma::uint32 id = 0 ): id( id ) {} };
 
 } } } // namespace snark { namespace points_calc { namespace trajectory_partitions {
@@ -1389,19 +1475,19 @@ template <> struct traits< point_with_direction >
         comma::visiting::traits< Eigen::Vector3d >::visit( k, static_cast< const Eigen::Vector3d& >( t ), v );
         v.apply( "direction", t.direction );
     }
-    
+
     template< typename K, typename V > static void visit( const K& k, point_with_direction& t, V& v )
     {
         comma::visiting::traits< Eigen::Vector3d >::visit( k, static_cast< Eigen::Vector3d& >( t ), v );
         v.apply( "direction", t.direction );
     }
 };
-    
+
 template <> struct traits< snark::points_calc::trajectory_partitions::output >
 {
     template< typename K, typename V > static void visit( const K&, const snark::points_calc::trajectory_partitions::output& t, V& v ) { v.apply( "id", t.id ); }
 };
-    
+
 template <> struct traits< snark::points_calc::integrate_frame::pose >
 {
     template< typename K, typename V > static void visit( const K&, const snark::points_calc::integrate_frame::pose& t, V& v )
@@ -1416,7 +1502,7 @@ template <> struct traits< snark::points_calc::integrate_frame::pose >
         v.apply( "orientation", t.orientation );
     }
 };
-    
+
 template <> struct traits< point_with_block >
 {
     template< typename K, typename V > static void visit( const K&, const point_with_block& t, V& v )
@@ -1442,7 +1528,7 @@ template <> struct traits< local_operation::point >
         v.apply( "block", t.block );
 //         v.apply( "mask", t.mask );
     }
-    
+
     template< typename K, typename V > static void visit( const K&, local_operation::point& t, V& v )
     {
         v.apply( "coordinates", t.coordinates );
@@ -1478,7 +1564,7 @@ template <> struct traits< percentile_in_radius::input_t >
         v.apply( "block", t.block );
     }
 };
-    
+
 } } // namespace comma { namespace visiting {
 
 template < typename Traits > static int run( const comma::command_line_options& options )
@@ -1736,11 +1822,11 @@ int main( int ac, char** av )
             for( std::size_t i = 0; i < records.size(); ++i )
             {
                 if( records[i].is_extremum )
-                { 
+                {
                     ( extrema.touch_at( records[i].point.coordinates ) )->second.push_back( &records[i] );
                 }
                 else
-                { 
+                {
                     records[i].reference_id = local_operation::record::invalid_id; // quick and dirty for now
 //                     if( records[i].reference_id == local_operation::record::invalid_id ) { continue; }
 //                     while( records[i].reference_record->point.id != records[i].reference_record->reference_record->point.id )
@@ -1763,7 +1849,7 @@ int main( int ac, char** av )
                             grid_t::iterator git = extrema.find( i );
                             if( git == extrema.end() ) { continue; }
                             for( std::size_t n = 0; n < it->second.size(); ++n )
-                            {                            
+                            {
                                 for( std::size_t k = 0; k < git->second.size(); ++k )
                                 {
                                     local_operation::update_nearest_extremum( it->second[n], git->second[k], radius, trace );
@@ -1785,11 +1871,11 @@ int main( int ac, char** av )
                     }
                 }
             }
-            
-            
+
+
             // todo: move output to a function
-            
-            
+
+
             if( verbose ) { std::cerr << "points-calc: " << operation << ": outputting..." << std::endl; }
             std::string endl;
             std::string delimiter;
@@ -1916,7 +2002,7 @@ int main( int ac, char** av )
             unsigned int size = options.value< unsigned int >( "--min-number-of-points-per-voxel,--size" );
             double r = options.value< double >( "--resolution" );
             Eigen::Vector3d resolution( r, r, r );
-            bool no_antialiasing = options.exists( "--no-antialiasing" );            
+            bool no_antialiasing = options.exists( "--no-antialiasing" );
             bool discard=options.exists("--discard");
             comma::csv::input_stream< remove_outliers::point > istream( std::cin, csv );
             remove_outliers::app app(csv,verbose);
@@ -1951,6 +2037,40 @@ int main( int ac, char** av )
                 app.extents.set_hull( p->coordinates );
             }
             if( verbose ) { std::cerr << "points-calc: done!" << std::endl; }
+            return 0;
+        }
+        if( "reduce" == operation )
+        {
+            std::vector< reduce_operation::input_record > records;
+            csv.full_xpath = false;
+            if( csv.fields.empty() ) { csv.fields = comma::join( comma::csv::names< Eigen::Vector3d >( false ), ',' ); }
+            if( options.exists( "--input-fields" )) { std::cout << comma::join( comma::csv::names< Eigen::Vector3d >( false ), ',' ) << std::endl; return 0; }
+            if( options.exists( "--input-format" )) { std::cout << comma::csv::format::value< Eigen::Vector3d >() << std::endl; return 0; }
+
+            comma::csv::input_stream< point_with_block > istream( std::cin, csv );
+            auto threshold  = options.value< comma::uint64 >( "--threshold,--min-points" );
+            auto radius = options.value< double >( "--radius" );
+            Eigen::Vector3d resolution( radius, radius, radius );
+            snark::math::closed_interval< double, 3 > extents;
+            comma::uint32 block = 0;
+
+            while( istream.ready() || ( std::cin.good() && !std::cin.eof() ) )
+            {
+                auto const p = istream.read();
+                if ( !p || block != p->block )
+                {
+                    if( !records.empty() )
+                    {
+                        reduce_operation::process( records, extents, resolution, threshold );
+                        extents = snark::math::closed_interval< double, 3 >();
+                        records.clear();
+                    }
+                    if( !p ) { break; }
+                    block = p->block;
+                }
+                records.emplace_back( *p, istream );
+                extents.set_hull( p->coordinates );
+            }
             return 0;
         }
         if( operation == "trajectory-chord" || operation == "chord" )
@@ -2120,8 +2240,8 @@ int main( int ac, char** av )
 //                                        static double ratio = options.value( "--ratio-threshold,--ratio", 1. );
 //                                        static double resolution = options.value( "--resolution,--distance-threshold,--threshold", 1. );
 //                                        static bool accumulate = options.exists( "--accumulate" );
-//                                        
-//                                        
+//
+//
 //                                        // todo
 //                                        return false;
 //                                    };

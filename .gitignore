@@ -13,4 +13,4 @@ disabled
 .kdev_include_paths
 tags
 compile_commands.json
-
+.ycm_extra_conf.py
