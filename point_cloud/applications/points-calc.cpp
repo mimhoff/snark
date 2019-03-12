@@ -1977,9 +1977,9 @@ int main( int ac, char** av )
                         extents = snark::math::closed_interval< double, 3 >();
                         records.clear();
                     }
-                    if( verbose ) { std::cerr << "points-calc " << operation << ": reading input points of block: " << block << std::endl; }
                     if( !p ) { break; }
                     block = p->block;
+                    if( verbose ) { std::cerr << "points-calc " << operation << ": reading input points of block: " << block << std::endl; }
                 }
                 std::string line;
                 if( csv.binary() ) // quick and dirty
