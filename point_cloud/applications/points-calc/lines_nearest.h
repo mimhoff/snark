@@ -1,5 +1,5 @@
 // This file is part of snark, a generic and flexible library for robotics research
-// Copyright (c) 2011 The University of Sydney
+// Copyright (c) 2019 Vsevolod Vlaskine
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,28 +27,29 @@
 // OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+/// @author vsevolod vlaskine
+
 #pragma once
 
 #include <string>
-#include <boost/optional.hpp>
-#include <boost/unordered_map.hpp>
-#include <boost/date_time/posix_time/ptime.hpp>
-#include <opencv2/core/core.hpp>
+#include <comma/application/command_line_options.h>
+#include <comma/csv/options.h>
 
-namespace snark { namespace cv_mat { namespace impl {
+namespace snark { namespace points_calc { namespace lines_nearest {
+    
+struct traits
+{
+    static std::string input_fields();
 
-boost::unordered_map< std::string, int > fill_types();
+    static std::string input_format();
+        
+    static std::string output_fields();
 
-cv::Scalar scalar_from_strings( const std::string* begin, unsigned int size );
+    static std::string output_format();
 
-unsigned int cvt_color_type_from_string( const std::string& t );
+    static std::string usage();
+        
+    static int run( const comma::command_line_options& options );
+};
 
-std::string type_as_string( int t );
-
-std::string make_filename( const boost::posix_time::ptime& t, const std::string& extension, boost::optional< unsigned int > index = boost::none );
-
-void check_image_type( const cv::Mat& m, const std::string& type );
-
-std::vector< int > imwrite_params( const std::string& type, const int quality );
-
-} } }  // namespace snark { namespace cv_mat { namespace impl {
+} } } // namespace snark { namespace points_calc { namespace lines_nearest {
