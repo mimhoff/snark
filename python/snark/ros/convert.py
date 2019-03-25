@@ -19,12 +19,9 @@ on ubuntu 18.04 ros melodic may not have ros-kinetic-rospy-message-converter pac
 you can install it from source as:
 > git clone https://github.com/baalexander/rospy_message_converter.git
 > cd rospy_message_converter
-> git checkout 0.4.0
+> git checkout 0.5.0
 > python setup.bash build
 > python setup.bash install
-
-versions of ros-kinetic-rospy-message-converter have broken backward compatibility
-see the fix in this code, look for 0.4.0
 """
     raise ImportError( msg )
 
@@ -55,6 +52,12 @@ def _ros_message_to_csv_record( message, lengths={}, ignore_variable_size_arrays
 """
     from rospy_message_converter import message_converter as mc
 
+    def _type_is_binary( field_type ):
+        try:
+            return mc.is_ros_binary_type( field_type, None ) # added in rospy_message_converter commit e846f546
+        except AttributeError:
+            return field_type in mc.ros_binary_types         # for version 0.4.0 of rospy_message_converter
+
     full_path = lambda name: prefix and prefix + "/" + name or name
 
     message_fields = mc._get_message_fields(message)
@@ -64,9 +67,7 @@ def _ros_message_to_csv_record( message, lengths={}, ignore_variable_size_arrays
     # see Python programming FAQ why-do-lambdas-defined-in-a-loop-with-different-values-all-return-the-same-result
     # for the explanation of all the lambda signatures (and some function signatures in case of time)
     for field_name, field_type in message_fields:
-        #if mc.is_ros_binary_type( field_type, None ): # use this code once commit e846f546 of 2017-05-06 is released
-        #if re.search(mc.ros_binary_types_regexp, field_type) is not None: # this seems to be even a newer way? todo: try
-        if field_type in mc.ros_binary_types: # use this for tag 0.4.0
+        if _type_is_binary( field_type ):
             ctor = lambda msg, field_name=field_name, field_type=field_type: mc._convert_to_ros_binary( field_type, getattr( msg, field_name ) )
             current_path = full_path( field_name )
             try:
