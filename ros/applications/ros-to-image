@@ -31,6 +31,7 @@
 
 import rospy
 import sys
+import signal
 import struct
 import argparse
 import time
@@ -138,6 +139,16 @@ example
 def main():
     global args
     global shutdown
+
+    # Reset SIGPIPE and SIGINT to their default OS behaviour.
+    # This stops python dumping a stack-trace on ctrl-c or broken pipe.
+    signal.signal( signal.SIGPIPE, signal.SIG_DFL )
+    s = signal.signal( signal.SIGINT, signal.SIG_DFL )
+    # but don't reset SIGINT if it's been assigned to something other
+    # than the Python default
+    if s != signal.default_int_handler:
+        signal.signal( signal.SIGINT, s )
+
     args = parse_args()
     shutdown = False
 
