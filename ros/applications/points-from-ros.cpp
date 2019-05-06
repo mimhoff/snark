@@ -51,7 +51,7 @@
 void usage(bool detail)
 {
     std::cerr<<"    subscribe to a ROS PointCloud2 topic and output as csv" << std::endl;
-    std::cerr<<"        input: recieves messages by subscribing to a ROS topic, " << std::endl;
+    std::cerr<<"        input: receives messages by subscribing to a ROS topic, " << std::endl;
     std::cerr<<"        output: writes data as csv to stdout" << std::endl;
     std::cerr<<"        message format and field names are take from ros message, csv options are for output only" << std::endl;
     std::cerr << std::endl;
