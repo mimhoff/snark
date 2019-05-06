@@ -1,5 +1,5 @@
-// This file is part of comma, a generic and flexible library
-// Copyright (c) 2017 The University of Sydney
+// This file is part of snark, a generic and flexible library for robotics research
+// Copyright (c) 2019 The University of Sydney
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
