@@ -1,4 +1,4 @@
-// This file is part of comma, a generic and flexible library
+// This file is part of snark, a generic and flexible library for robotics research
 // Copyright (c) 2017 The University of Sydney
 // All rights reserved.
 //
@@ -43,33 +43,40 @@
 
 void usage(bool detail)
 {
-    std::cerr<<"    publish csv to ROS PointCloud2" << std::endl;
-    std::cerr<<"        input: reads csv from stdin" << std::endl;
-    std::cerr<<"        output: publishes the data as sensor_msg::PointCloud2 on the specified topic in ROS" << std::endl;
-    std::cerr<<"        if block field is present, then groups all continious records with the same block number as one ros message" << std::endl;
     std::cerr << std::endl;
-    std::cerr<< "usage: " << comma::verbose.app_name() << " [ <options> ]" << std::endl;
+    std::cerr << "publish csv to ROS PointCloud2" << std::endl;
     std::cerr << std::endl;
-    std::cerr << "options" << std::endl;
-    std::cerr << "    --all; sends all the records as one ros message (when no block field), otherwise send each record as a message" << std::endl;
-    std::cerr << "    --hang-on,--stay; waits about three seconds before exiting so that subscribers can receive the last message" << std::endl;
-    std::cerr << "    --help,-h: show help; --help --verbose: show more help" << std::endl;
+    std::cerr << "    input: reads csv from stdin" << std::endl;
+    std::cerr << "    output: published as sensor_msg::PointCloud2 on the specified topic in ROS" << std::endl;
+    std::cerr << std::endl;
+    std::cerr << "usage: " << comma::verbose.app_name() << " [ <options> ]" << std::endl;
+    std::cerr << std::endl;
+    std::cerr << "options:" << std::endl;
+    std::cerr << "    --all: sends all the records as one ros message (when no block field)," << std::endl;
+    std::cerr << "           otherwise send each record as a message" << std::endl;
+    std::cerr << "    --hang-on,--stay: waits about three seconds before exiting so that" << std::endl;
+    std::cerr << "                      subscribers can receive the last message" << std::endl;
+    std::cerr << "    --help,-h: show help: --help --verbose: show more help" << std::endl;
     std::cerr << "    --frame: ros message frame as string"<<std::endl;
-    std::cerr << "    --latch;  ROS publisher option; If true, the last message published on this topic will be saved and sent to new subscribers when they connect" << std::endl;
-    std::cerr << "    --node-name: node name for this process, when not specified uses ros::init_options::AnonymousName flag" << std::endl;
-    std::cerr << "    --pass-through,--pass; pass input data to stdout" << std::endl;
+    std::cerr << "    --latch: ROS publisher option; if true, the last message published on this" << std::endl;
+    std::cerr << "             topic will be saved and sent to new subscribers when they connect" << std::endl;
+    std::cerr << "    --node-name: node name for this process, when not specified uses" << std::endl;
+    std::cerr << "                 ros::init_options::AnonymousName flag" << std::endl;
+    std::cerr << "    --pass-through,--pass: pass input data to stdout" << std::endl;
     std::cerr << "    --queue-size=[<n>]: ROS publisher queue size, default 1" << std::endl;
     std::cerr << "    --topic=<topic>: name of topic to publish to" << std::endl;
     std::cerr << "    --verbose,-v: show detailed messages" << std::endl;
     std::cerr << std::endl;
-    std::cerr << "    csv options" << std::endl;
-    std::cerr << "        --fields: default: x,y,z" << std::endl;
-    std::cerr << "        either --format or --binary option must be specified" << std::endl;
+    std::cerr << "csv options:" << std::endl;
+    std::cerr << "    --fields: default: x,y,z" << std::endl;
+    std::cerr << "    either --format or --binary option must be specified" << std::endl;
+    std::cerr << "    if block field is present, groups contiguous records with the same block" << std::endl;
+    std::cerr << "    number as one ros message" << std::endl;
     std::cerr << std::endl;
     if(detail)
     {
-        std::cerr << "csv options:" << std::endl;
-        std::cerr<< comma::csv::options::usage() << std::endl;
+        std::cerr << "detailed csv options:" << std::endl;
+        std::cerr << comma::csv::options::usage() << std::endl;
         std::cerr << std::endl;
     }
     else
@@ -77,10 +84,10 @@ void usage(bool detail)
         std::cerr << "use -v or --verbose to see more detail on csv options" << std::endl;
         std::cerr << std::endl;
     }
-    std::cerr << "example" << std::endl;
+    std::cerr << "example:" << std::endl;
     std::cerr << std::endl;
     std::cerr << "    to publish data from file:" << std::endl;
-    std::cerr << "        cat data.bin | " << comma::verbose.app_name() << "  --topic some_topic --fields t,block,x,y,z --binary t,ui,3f " << std::endl;
+    std::cerr << "        cat data.bin | " << comma::verbose.app_name() << " --topic some_topic --fields t,block,x,y,z --binary t,ui,3f " << std::endl;
     std::cerr << std::endl;
 }
 
