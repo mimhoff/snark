@@ -65,6 +65,27 @@ examples
 
 """
 
+# Printing a message (used in --dry-run mode) fails for strings.
+#
+# The problem is that genpy.message.strify_message() uses yaml.dump() for
+# strings, which it defines as anything that isinstance( basestring ).
+# numpy.string_ satisfies this but when output by yaml.dump() embedded in the
+# rest of the yaml output from genpy.message.strify_message() the indentation is
+# incorrect, and so it's no longer well-formed yaml.
+#
+# We avoid all this by overriding genpy.message.isstring() and removing the
+# match for numpy.string_. This means that it falls back on outputting str(s),
+# which works.
+
+import genpy, numpy
+orig_isstring = genpy.message.isstring
+
+def isstring_unless_numpy(s):
+    if isinstance(s, numpy.string_): return False
+    return orig_isstring( s )
+
+genpy.message.isstring = isstring_unless_numpy
+
 def main():
     parser = argparse.ArgumentParser( description = help_description, epilog = help_examples, formatter_class = argparse.RawDescriptionHelpFormatter, conflict_handler = 'resolve' )
     parser.add_argument( 'topic', nargs = '?', help = 'topic', type = str )
