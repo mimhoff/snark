@@ -1,2 +1,11 @@
-number_of(output)=1
-output[0]="header/seq,header/stamp,header/frame_id,status/status,status/service,latitude,longitude,altitude,position_covariance,position_covariance_type"
+#python
+
+# only run these tests if we have rospy installed
+try:
+    import rospy
+
+    expect number_of(output) == 1
+    expect output[0] == "header/seq,header/stamp,header/frame_id,status/status,status/service,latitude,longitude,altitude,position_covariance,position_covariance_type"
+
+except ImportError:
+    pass
