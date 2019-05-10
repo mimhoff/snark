@@ -50,48 +50,52 @@
 
 void usage(bool detail)
 {
-    std::cerr<<"    subscribe to a ROS PointCloud2 topic and output as csv" << std::endl;
-    std::cerr<<"        input: receives messages by subscribing to a ROS topic, " << std::endl;
-    std::cerr<<"        output: writes data as csv to stdout" << std::endl;
-    std::cerr<<"        message format and field names are take from ros message, csv options are for output only" << std::endl;
     std::cerr << std::endl;
-    std::cerr<< "usage: " << comma::verbose.app_name() << " [ <options> ]" << std::endl;
+    std::cerr << "subscribe to a ROS PointCloud2 topic and output as csv" << std::endl;
     std::cerr << std::endl;
-    std::cerr << "options" << std::endl;
-    std::cerr << "    --no-discard; don't discard points with nan or inf in their values"<< std::endl;
-    std::cerr << "    --flush; call flush on stdout after each write (otherwise may buffer with small size messages)" << std::endl;
-    std::cerr << "    --header,--output-header; prepend t,block header to output with t,ui format"<< std::endl;
-    std::cerr << "    --header-fields; write csv field names of header to std out and exit"<< std::endl;
-    std::cerr << "    --header-format; write csv format of header to std out and exit"<< std::endl;
+    std::cerr << "    input: receives messages by subscribing to a ROS topic" << std::endl;
+    std::cerr << "    output: writes data as csv to stdout" << std::endl;
+    std::cerr << std::endl;
+    std::cerr << "usage: " << comma::verbose.app_name() << " [ <options> ]" << std::endl;
+    std::cerr << std::endl;
+    std::cerr << "options:" << std::endl;
+    std::cerr << "    --no-discard: don't discard points with nan or inf in their values"<< std::endl;
+    std::cerr << "    --flush: call flush on stdout after each write" << std::endl;
+    std::cerr << "    --header,--output-header: prepend t,block header to output with t,ui format"<< std::endl;
+    std::cerr << "    --header-fields: write csv field names of header to stdout and exit"<< std::endl;
+    std::cerr << "    --header-format: write csv format of header to stdout and exit"<< std::endl;
     std::cerr << "    --help,-h: show help; --help --verbose: show more help" << std::endl;
-    std::cerr << "    --max-datagram-size: If a UDP transport is used, specifies the maximum datagram size (see ros::TransportHints)" << std::endl;
-    std::cerr << "    --node-name: node name for this process, when not specified uses ros::init_options::AnonymousName flag" << std::endl;
-    std::cerr << "    --output-fields; print field names and exit" << std::endl;
-    std::cerr << "    --output-format; print format and exit" << std::endl;
+    std::cerr << "    --max-datagram-size: for UDP transport. See ros::TransportHints" << std::endl;
+    std::cerr << "    --node-name: node name for this process, when not specified uses" << std::endl;
+    std::cerr << "                 ros::init_options::AnonymousName flag" << std::endl;
+    std::cerr << "    --output-fields: print field names and exit" << std::endl;
+    std::cerr << "    --output-format: print format and exit" << std::endl;
     std::cerr << "    --queue-size=[<n>]: ROS Subscriber queue size, default 1" << std::endl;
     std::cerr << "    --topic=<topic>: name of the topic to subscribe to" << std::endl;
     std::cerr << "    --verbose,-v: show detailed messages" << std::endl;
     std::cerr << std::endl;
-    std::cerr << "field names and format are extracted from the first message of the subscribed topic; following options wait until they receive a message" << std::endl;
+    std::cerr << "    field names and format are extracted from the first message of the" << std::endl;
+    std::cerr << "    subscribed topic; following options wait until they receive a message" << std::endl;
     std::cerr << std::endl;
-    std::cerr << "    csv options" << std::endl;
-    std::cerr << "        either --format or --binary option must be specified" << std::endl;
+    std::cerr << "csv options:" << std::endl;
+    std::cerr << "    either --format or --binary option must be specified" << std::endl;
+    std::cerr << "    csv options are for output only" << std::endl;
     std::cerr << std::endl;
     if(detail)
     {
-        std::cerr << "csv options:" << std::endl;
-        std::cerr<< comma::csv::options::usage() << std::endl;
+        std::cerr << "detailed csv options:" << std::endl;
+        std::cerr << comma::csv::options::usage() << std::endl;
         std::cerr << std::endl;
     }
     else
     {
-        std::cerr << "use -v or --verbose to see more detail on csv options" << std::endl;
+        std::cerr << "    use -v or --verbose to see more detail on csv options" << std::endl;
         std::cerr << std::endl;
     }
-    std::cerr << "example" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "    to view points from a topic:" << std::endl;
-    std::cerr << "        " << comma::verbose.app_name() << "  --topic some_topic --fields t,block,x,y,z --binary t,ui,3f | view-points --fields t,block,x,y,z --binary t,ui,3f" << std::endl;
+    std::cerr << "example:" << std::endl;
+    std::cerr << "    view points from a topic:" << std::endl;
+    std::cerr << "    " << comma::verbose.app_name() << " --topic some_topic --fields t,block,x,y,z --binary t,ui,3f \\" << std::endl;
+    std::cerr << "        | view-points --fields t,block,x,y,z --binary t,ui,3f" << std::endl;
     std::cerr << std::endl;
 }
 
