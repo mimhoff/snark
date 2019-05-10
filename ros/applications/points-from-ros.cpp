@@ -48,6 +48,27 @@
 #include <comma/csv/traits.h>
 #include <cmath>
 
+void bash_completion( unsigned const ac, char const * const * av )
+{
+    static const char* completion_options =
+        " --no-discard"
+        " --flush"
+        " --header --output-header"
+        " --header-fields"
+        " --header-format"
+        " --help -h"
+        " --max-datagram-size"
+        " --node-name"
+        " --output-fields"
+        " --output-format"
+        " --queue-size"
+        " --topic"
+        " --verbose -v"
+        ;
+    std::cout << completion_options << std::endl;
+    exit( 0 );
+}
+
 void usage(bool detail)
 {
     std::cerr << std::endl;
@@ -422,6 +443,7 @@ int main( int argc, char** argv )
     try
     {
         comma::command_line_options options( argc, argv, usage );
+        if( options.exists( "--bash-completion" ) ) bash_completion( argc, argv );
         if(options.exists("--header-fields")) { std::cout<<comma::join( comma::csv::names<header>(),',')<<std::endl; return 0; }
         if(options.exists("--header-format")) { std::cout<< comma::csv::format::value<header>()<<std::endl; return 0; }
         std::string topic=options.value<std::string>("--topic");
