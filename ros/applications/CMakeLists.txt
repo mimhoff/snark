@@ -8,7 +8,7 @@ endif( NOT EXISTS "${ros_path}")
 link_directories( "${ros_path}/lib" )
 include_directories( "${ros_path}/include" )
 
-set( ros_libs roscpp roscpp_serialization rostime rosconsole )
+set( ros_libs roscpp roscpp_serialization rosbag rostime rosconsole )
 
 SET( GLOB stdmsgs_include ${dir}/std_msgs/*.h )
 
@@ -23,7 +23,10 @@ target_link_libraries( points-from-ros ${ros_libs} ${snark_ALL_EXTERNAL_LIBRARIE
 add_executable( ros-multi-array ros-multi-array.cpp )
 target_link_libraries( ros-multi-array ${stdmsgs_include} ${ros_libs} ${snark_ALL_EXTERNAL_LIBRARIES} ${catkin_LIBRARIES} )
 
-install( TARGETS points-to-ros points-from-ros ros-multi-array
+add_executable( ros-image ros-image.cpp )
+target_link_libraries( ros-image ${stdmsgs_include} ${ros_libs} snark_imaging ${snark_ALL_EXTERNAL_LIBRARIES} ${catkin_LIBRARIES} )
+
+install( TARGETS points-to-ros points-from-ros ros-image ros-multi-array
          RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/${snark_INSTALL_BIN_DIR}
          COMPONENT Runtime )
 
