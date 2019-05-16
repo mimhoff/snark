@@ -27,26 +27,17 @@
 // OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include <vector>
-#include <unordered_map>
-#include <iostream>
-#include <comma/application/verbose.h>
 #include <comma/application/command_line_options.h>
-#include <comma/csv/options.h>
+#include <comma/application/verbose.h>
 #include <comma/base/exception.h>
 #include <comma/csv/format.h>
+#include <comma/csv/options.h>
 #include <comma/csv/stream.h>
-// #include <chrono>
-// #include <thread>
-
-#include "ros/ros.h"
-#include "std_msgs/String.h"
-#include "sensor_msgs/PointCloud2.h"
-
-#include <sensor_msgs/point_cloud2_iterator.h>
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <comma/csv/traits.h>
-#include <cmath>
+#include <ros/ros.h>
+#include <sensor_msgs/PointCloud2.h>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <unordered_map>
 
 void bash_completion( unsigned const ac, char const * const * av )
 {
