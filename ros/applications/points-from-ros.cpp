@@ -35,20 +35,24 @@
 #include <comma/csv/stream.h>
 #include <comma/csv/traits.h>
 #include <ros/ros.h>
+#include <rosbag/bag.h>
+#include <rosbag/view.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <unordered_map>
+#include <glob.h>
 
 void bash_completion( unsigned const ac, char const * const * av )
 {
     static const char* completion_options =
-        " --no-discard"
+        " --bags"
         " --flush"
         " --header --output-header"
         " --header-fields"
         " --header-format"
         " --help -h"
         " --max-datagram-size"
+        " --no-discard"
         " --node-name"
         " --output-fields"
         " --output-format"
@@ -71,13 +75,14 @@ void usage(bool detail)
     std::cerr << "usage: " << comma::verbose.app_name() << " [ <options> ]" << std::endl;
     std::cerr << std::endl;
     std::cerr << "options:" << std::endl;
-    std::cerr << "    --no-discard: don't discard points with nan or inf in their values"<< std::endl;
+    std::cerr << "    --bags=<bags>: load from rosbags" << std::endl;
     std::cerr << "    --flush: call flush on stdout after each write" << std::endl;
     std::cerr << "    --header,--output-header: prepend t,block header to output with t,ui format"<< std::endl;
     std::cerr << "    --header-fields: write csv field names of header to stdout and exit"<< std::endl;
     std::cerr << "    --header-format: write csv format of header to stdout and exit"<< std::endl;
     std::cerr << "    --help,-h: show help; --help --verbose: show more help" << std::endl;
     std::cerr << "    --max-datagram-size: for UDP transport. See ros::TransportHints" << std::endl;
+    std::cerr << "    --no-discard: don't discard points with nan or inf in their values"<< std::endl;
     std::cerr << "    --node-name: node name for this process, when not specified uses" << std::endl;
     std::cerr << "                 ros::init_options::AnonymousName flag" << std::endl;
     std::cerr << "    --output-fields: print field names and exit" << std::endl;
@@ -104,9 +109,13 @@ void usage(bool detail)
         std::cerr << "    use -v or --verbose to see more detail on csv options" << std::endl;
         std::cerr << std::endl;
     }
-    std::cerr << "example:" << std::endl;
-    std::cerr << "    view points from a topic:" << std::endl;
+    std::cerr << "examples:" << std::endl;
+    std::cerr << "    view points from a published topic:" << std::endl;
     std::cerr << "    " << comma::verbose.app_name() << " --topic some_topic --fields t,block,x,y,z --binary t,ui,3f \\" << std::endl;
+    std::cerr << "        | view-points --fields t,block,x,y,z --binary t,ui,3f" << std::endl;
+    std::cerr << std::endl;
+    std::cerr << "    view points from a set of bags:" << std::endl;
+    std::cerr << "    " << comma::verbose.app_name() << " --bags \"*.bag\" --topic some_topic --fields t,block,x,y,z --binary t,ui,3f \\" << std::endl;
     std::cerr << "        | view-points --fields t,block,x,y,z --binary t,ui,3f" << std::endl;
     std::cerr << std::endl;
 }
@@ -429,6 +438,23 @@ void points::process(const sensor_msgs::PointCloud2ConstPtr input)
     catch( ... ) { std::cerr << comma::verbose.app_name() << ": " << "unknown exception" << std::endl; ros::shutdown(); }
 }
 
+static std::vector< std::string > glob( const std::string& path )
+{
+    glob_t globbuf;
+    int return_val = glob( path.c_str(), GLOB_TILDE, NULL, &globbuf );
+    std::vector< std::string > path_names;
+    if( return_val == 0)
+    {
+        for( std::size_t i = 0; i < globbuf.gl_pathc; ++i )
+        {
+            path_names.push_back( std::string( globbuf.gl_pathv[i] ));
+        }
+    }
+    else { std::cerr << comma::verbose.app_name() << ": couldn't find " << path << std::endl; }
+    globfree( &globbuf );
+    return path_names;
+}
+
 int main( int argc, char** argv )
 {
     try
@@ -437,6 +463,7 @@ int main( int argc, char** argv )
         if( options.exists( "--bash-completion" ) ) bash_completion( argc, argv );
         if(options.exists("--header-fields")) { std::cout<<comma::join( comma::csv::names<header>(),',')<<std::endl; return 0; }
         if(options.exists("--header-format")) { std::cout<< comma::csv::format::value<header>()<<std::endl; return 0; }
+        std::string bags_option = options.value<std::string>( "--bags" );
         std::string topic=options.value<std::string>("--topic");
         unsigned queue_size=options.value<unsigned>("--queue-size",1);
         boost::optional<int> max_datagram_size=options.optional<int>("--max-datagram-size");
@@ -451,10 +478,36 @@ int main( int argc, char** argv )
         ros::init(arrrgc, argv,*node_name,node_options);
         ros::NodeHandle ros_node;
         points points(options);
-        ros::TransportHints transport_hints;
-        if(max_datagram_size) {transport_hints=ros::TransportHints().maxDatagramSize(*max_datagram_size);}
-        ros::Subscriber subsriber=ros_node.subscribe(topic,queue_size,&points::process,&points,transport_hints);
-        ros::spin();
+        if( !bags_option.empty() )
+        {
+            std::vector< std::string > bag_names;
+            for( auto name: comma::split( bags_option, ',' ))
+            {
+                std::vector< std::string > expansion = glob( name );
+                bag_names.insert( bag_names.end(), expansion.begin(), expansion.end() );
+            }
+            for( auto bag_name: bag_names )
+            {
+                comma::verbose << "opening " << bag_name << std::endl;
+                rosbag::Bag bag;
+                bag.open( bag_name );
+                std::vector< std::string > topics;
+                topics.push_back( topic );
+                for( rosbag::MessageInstance const m: rosbag::View( bag, rosbag::TopicQuery( topics )))
+                {
+                    sensor_msgs::PointCloud2ConstPtr msg = m.instantiate< sensor_msgs::PointCloud2 >();
+                    points.process( msg );
+                }
+                bag.close();
+            }
+        }
+        else
+        {
+            ros::TransportHints transport_hints;
+            if(max_datagram_size) {transport_hints=ros::TransportHints().maxDatagramSize(*max_datagram_size);}
+            ros::Subscriber subsriber=ros_node.subscribe(topic,queue_size,&points::process,&points,transport_hints);
+            ros::spin();
+        }
         return 0;
     }
     catch( std::exception& ex ) { std::cerr << comma::verbose.app_name() << ": exception: " << ex.what() << std::endl; }
