@@ -463,7 +463,7 @@ int main( int argc, char** argv )
         if( options.exists( "--bash-completion" ) ) bash_completion( argc, argv );
         if(options.exists("--header-fields")) { std::cout<<comma::join( comma::csv::names<header>(),',')<<std::endl; return 0; }
         if(options.exists("--header-format")) { std::cout<< comma::csv::format::value<header>()<<std::endl; return 0; }
-        std::string bags_option = options.value<std::string>( "--bags" );
+        std::string bags_option = options.value<std::string>( "--bags", "" );
         std::string topic=options.value<std::string>("--topic");
         unsigned queue_size=options.value<unsigned>("--queue-size",1);
         boost::optional<int> max_datagram_size=options.optional<int>("--max-datagram-size");
