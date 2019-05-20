@@ -497,8 +497,10 @@ int main( int argc, char** argv )
                 {
                     sensor_msgs::PointCloud2ConstPtr msg = m.instantiate< sensor_msgs::PointCloud2 >();
                     points.process( msg );
+                    if( ros::isShuttingDown() ) { break; }
                 }
                 bag.close();
+                if( ros::isShuttingDown() ) { break; }
             }
         }
         else
