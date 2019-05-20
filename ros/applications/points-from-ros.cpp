@@ -46,6 +46,7 @@ void bash_completion( unsigned const ac, char const * const * av )
 {
     static const char* completion_options =
         " --bags"
+        " --fields"
         " --flush"
         " --header --output-header"
         " --header-fields"
@@ -75,7 +76,9 @@ void usage(bool detail)
     std::cerr << "usage: " << comma::verbose.app_name() << " [ <options> ]" << std::endl;
     std::cerr << std::endl;
     std::cerr << "options:" << std::endl;
+    std::cerr << "    --ascii: output in ascii (default is binary)" << std::endl;
     std::cerr << "    --bags=[<bags>]: load from rosbags" << std::endl;
+    std::cerr << "    --fields=[<names>]: only output listed fields" << std::endl;
     std::cerr << "    --flush: call flush on stdout after each write" << std::endl;
     std::cerr << "    --header,--output-header: prepend t,block header to output with t,ui format"<< std::endl;
     std::cerr << "    --header-fields: write csv field names of header to stdout and exit"<< std::endl;
@@ -92,24 +95,8 @@ void usage(bool detail)
     std::cerr << "    --verbose,-v: show detailed messages" << std::endl;
     std::cerr << std::endl;
     std::cerr << "    field names and format are extracted from the first message of the" << std::endl;
-    std::cerr << "    subscribed topic; following options wait until they receive a message" << std::endl;
+    std::cerr << "    subscribed topic" << std::endl;
     std::cerr << std::endl;
-    std::cerr << "csv options:" << std::endl;
-    std::cerr << "    if --fields is specified, either --format or --binary option must also be" << std::endl;
-    std::cerr << "    specified, otherwise output is binary with all fields" << std::endl;
-    std::cerr << "    Note that csv options are for output only" << std::endl;
-    std::cerr << std::endl;
-    if(detail)
-    {
-        std::cerr << "detailed csv options:" << std::endl;
-        std::cerr << comma::csv::options::usage() << std::endl;
-        std::cerr << std::endl;
-    }
-    else
-    {
-        std::cerr << "    use -v or --verbose to see more detail on csv options" << std::endl;
-        std::cerr << std::endl;
-    }
     std::cerr << "examples:" << std::endl;
     std::cerr << "    view points from a published topic:" << std::endl;
     std::cerr << "    " << comma::verbose.app_name() << " --topic some_topic --fields x,y,z --binary 3f --header \\" << std::endl;
@@ -188,8 +175,11 @@ public:
     }
 
     /// returns list of field names from the message
-    static std::string msg_fields_names( const sensor_msgs::PointCloud2::_fields_type& msg_fields )
+    static std::string msg_fields_names( const sensor_msgs::PointCloud2::_fields_type& msg_fields
+                                       , const std::vector< std::string >& field_filter = std::vector< std::string >() )
     {
+        if( !field_filter.empty() ) { return comma::join( field_filter, ',' ); }
+
         std::string s;
         std::string delimiter;
         std::size_t expected_offset = 0;
@@ -214,27 +204,40 @@ public:
         return s;
     }
 
-    /// returns csv format from the message
-    static std::string msg_fields_format( const sensor_msgs::PointCloud2::_fields_type& msg_fields )
+    /// returns csv format from the message, optionally filtered by field name
+    static std::string msg_fields_format( const sensor_msgs::PointCloud2::_fields_type& msg_fields
+                                        , const std::vector< std::string >& field_filter = std::vector< std::string >() )
     {
         std::string s;
         std::string delimiter;
         std::size_t expected_offset = 0;
+        bool add_field;
         const auto& rmap = get_rmap_data_type();
         for( const auto& f : msg_fields )
         {
             comma::csv::format::types_enum type = rmap.at( f.datatype );
-            if( f.offset > expected_offset )
+            if( field_filter.empty() )
             {
-                for( auto t: padding_types( f.offset - expected_offset ))
+                if( f.offset > expected_offset )
                 {
-                    s += delimiter + comma::csv::format::to_format( t );
+                    for( auto t: padding_types( f.offset - expected_offset ))
+                    {
+                        s += delimiter + comma::csv::format::to_format( t );
+                    }
                 }
+                expected_offset = f.offset + comma::csv::format::size_of( type ) * f.count;
+                add_field = true;
             }
-            s += delimiter + ( f.count > 1 ? boost::lexical_cast< std::string >( f.count ) : "" )
-                + comma::csv::format::to_format( type );
-            expected_offset = f.offset + comma::csv::format::size_of( type ) * f.count;
-            if( delimiter.empty() ) { delimiter = ","; }
+            else
+            {
+                add_field = ( std::find( field_filter.begin(), field_filter.end(), f.name ) != field_filter.end());
+            }
+            if( add_field )
+            {
+                s += delimiter + ( f.count > 1 ? boost::lexical_cast< std::string >( f.count ) : "" )
+                    + comma::csv::format::to_format( type );
+                if( delimiter.empty() ) { delimiter = ","; }
+            }
         }
         return s;
     }
@@ -332,25 +335,31 @@ template <> struct traits< header >
 /// process ros sensor_msgs::PointCloud2 message
 struct points
 {
+    std::vector< std::string > fields;
     comma::csv::format format;
-    bool ascii;
     comma::csv::options csv;
+    bool ascii;
     bool output_fields;
     bool output_format;
     bool flush;
     bool write_header;
     bool discard;
-    points(const comma::command_line_options& options) : ascii(false), csv(options) , 
-        output_fields(options.exists("--output-fields")),
-        output_format(options.exists("--output-format")),
-        flush(options.exists("--flush")),
-        write_header(options.exists("--header,--output-header")),
-        discard(!options.exists("--no-discard"))
+
+    points( const comma::command_line_options& options )
+        : csv( options )
+        , ascii( options.exists( "--ascii" ))
+        , output_fields( options.exists( "--output-fields" ))
+        , output_format( options.exists( "--output-format" ))
+        , flush( options.exists( "--flush" ))
+        , write_header( options.exists( "--header,--output-header" ))
+        , discard( !options.exists( "--no-discard" ))
     {
-        if( options.exists( "--format" )) { format = comma::csv::format( options.value< std::string >( "--format" )); ascii = true; }
-        if( options.exists( "--binary" )) { format = comma::csv::format( options.value< std::string >( "--binary" )); }
+        fields = comma::split( options.value< std::string >( "--fields", "" ), ',' );
+        if( fields.size() == 1 && fields[0].empty() ) { fields.clear(); } // comma::split quirk
     }
+
     void process(const sensor_msgs::PointCloud2ConstPtr input);
+
 private:
     struct writer_base
     {
@@ -431,20 +440,20 @@ void points::process(const sensor_msgs::PointCloud2ConstPtr input)
         if( output_fields )
         { 
             if( write_header ) { std::cout << comma::join( comma::csv::names< header >(), ',') << ","; }
-            std::cout << snark::ros::point_cloud::msg_fields_names( input->fields ) << std::endl;
+            std::cout << snark::ros::point_cloud::msg_fields_names( input->fields, fields ) << std::endl;
             ros::shutdown();
             return;
         }
         if( output_format )
         { 
             if( write_header ) { std::cout << comma::csv::format::value< header >() << ","; }
-            std::cout << snark::ros::point_cloud::msg_fields_format( input->fields ) << std::endl;
+            std::cout << snark::ros::point_cloud::msg_fields_format( input->fields, fields ) << std::endl;
             ros::shutdown();
             return;
         }
         if( format.count() == 0 )
         {
-            format = comma::csv::format( snark::ros::point_cloud::msg_fields_format( input->fields ));
+            format = comma::csv::format( snark::ros::point_cloud::msg_fields_format( input->fields, fields ));
             comma::verbose << "setting format to " << format.string() << std::endl;
         }
         unsigned count=input->width*input->height;
