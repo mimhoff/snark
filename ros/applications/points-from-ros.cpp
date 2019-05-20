@@ -75,7 +75,7 @@ void usage(bool detail)
     std::cerr << "usage: " << comma::verbose.app_name() << " [ <options> ]" << std::endl;
     std::cerr << std::endl;
     std::cerr << "options:" << std::endl;
-    std::cerr << "    --bags=<bags>: load from rosbags" << std::endl;
+    std::cerr << "    --bags=[<bags>]: load from rosbags" << std::endl;
     std::cerr << "    --flush: call flush on stdout after each write" << std::endl;
     std::cerr << "    --header,--output-header: prepend t,block header to output with t,ui format"<< std::endl;
     std::cerr << "    --header-fields: write csv field names of header to stdout and exit"<< std::endl;
