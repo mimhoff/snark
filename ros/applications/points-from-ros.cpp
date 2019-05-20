@@ -431,15 +431,17 @@ void points::process(const sensor_msgs::PointCloud2ConstPtr input)
 {
     try
     {
-        if(output_fields)
+        if( output_fields )
         { 
-            std::cout<<snark::ros::point_cloud::msg_fields_names(input->fields)<<std::endl;
+            if( write_header ) { std::cout << comma::join( comma::csv::names< header >(), ',') << ","; }
+            std::cout << snark::ros::point_cloud::msg_fields_names( input->fields ) << std::endl;
             ros::shutdown();
             return;
         }
-        if(output_format)
+        if( output_format )
         { 
-            std::cout<<snark::ros::point_cloud::msg_fields_format(input->fields)<<std::endl;
+            if( write_header ) { std::cout << comma::csv::format::value< header >() << ","; }
+            std::cout << snark::ros::point_cloud::msg_fields_format( input->fields ) << std::endl;
             ros::shutdown();
             return;
         }
