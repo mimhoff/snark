@@ -95,8 +95,9 @@ void usage(bool detail)
     std::cerr << "    subscribed topic; following options wait until they receive a message" << std::endl;
     std::cerr << std::endl;
     std::cerr << "csv options:" << std::endl;
-    std::cerr << "    either --format or --binary option must be specified" << std::endl;
-    std::cerr << "    csv options are for output only" << std::endl;
+    std::cerr << "    if --fields is specified, either --format or --binary option must also be" << std::endl;
+    std::cerr << "    specified, otherwise output is binary with all fields" << std::endl;
+    std::cerr << "    Note that csv options are for output only" << std::endl;
     std::cerr << std::endl;
     if(detail)
     {
@@ -346,12 +347,8 @@ struct points
         write_header(options.exists("--header,--output-header")),
         discard(!options.exists("--no-discard"))
     {
-        if( !output_fields && !output_format)
-        {
-            ascii= !csv.binary();
-            if(ascii && !options.exists("--format")) { COMMA_THROW( comma::exception, "please specify either --format for ascii or --binary"); }
-            format=comma::csv::format(comma::csv::format(options.value<std::string>(ascii?"--format":"--binary,-b")).expanded_string());
-        }
+        if( options.exists( "--format" )) { format = comma::csv::format( options.value< std::string >( "--format" )); ascii = true; }
+        if( options.exists( "--binary" )) { format = comma::csv::format( options.value< std::string >( "--binary" )); }
     }
     void process(const sensor_msgs::PointCloud2ConstPtr input);
 private:
@@ -445,6 +442,11 @@ void points::process(const sensor_msgs::PointCloud2ConstPtr input)
             ros::shutdown();
             return;
         }
+        if( format.count() == 0 )
+        {
+            format = comma::csv::format( snark::ros::point_cloud::msg_fields_format( input->fields ));
+            comma::verbose << "setting format to " << format.string() << std::endl;
+        }
         unsigned count=input->width*input->height;
         unsigned record_size=input->point_step;
         ::header header(input->header.stamp,input->header.seq);
@@ -499,7 +501,7 @@ int main( int argc, char** argv )
     try
     {
         comma::command_line_options options( argc, argv, usage );
-        if( options.exists( "--bash-completion" ) ) bash_completion( argc, argv );
+        if( options.exists( "--bash-completion" )) bash_completion( argc, argv );
         if(options.exists("--header-fields")) { std::cout<<comma::join( comma::csv::names<header>(),',')<<std::endl; return 0; }
         if(options.exists("--header-format")) { std::cout<< comma::csv::format::value<header>()<<std::endl; return 0; }
         std::string bags_option = options.value<std::string>( "--bags", "" );
