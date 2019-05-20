@@ -212,18 +212,8 @@ public:
         }
         return s;
     }
-    /// returns csv format elements from the message
-    static std::vector<comma::csv::format::element> msg_fields_format_elements(const sensor_msgs::PointCloud2::_fields_type& msg_fields)
-    {
-        std::vector<comma::csv::format::element> elements;
-        const auto& rmap=get_rmap_data_type();
-        for(const auto& i : msg_fields)
-        {
-            comma::csv::format::types_enum type=rmap.at(i.datatype);
-            elements.push_back(comma::csv::format::element(i.offset,i.count,i.count*comma::csv::format::size_of(type),type));
-        }
-        return elements;
-    }
+
+    /// returns csv format from the message
     static std::string msg_fields_format( const sensor_msgs::PointCloud2::_fields_type& msg_fields )
     {
         std::string s;
