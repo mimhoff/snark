@@ -111,11 +111,11 @@ void usage(bool detail)
     }
     std::cerr << "examples:" << std::endl;
     std::cerr << "    view points from a published topic:" << std::endl;
-    std::cerr << "    " << comma::verbose.app_name() << " --topic some_topic --fields t,block,x,y,z --binary t,ui,3f \\" << std::endl;
+    std::cerr << "    " << comma::verbose.app_name() << " --topic some_topic --fields x,y,z --binary 3f --header \\" << std::endl;
     std::cerr << "        | view-points --fields t,block,x,y,z --binary t,ui,3f" << std::endl;
     std::cerr << std::endl;
     std::cerr << "    view points from a set of bags:" << std::endl;
-    std::cerr << "    " << comma::verbose.app_name() << " --bags \"*.bag\" --topic some_topic --fields t,block,x,y,z --binary t,ui,3f \\" << std::endl;
+    std::cerr << "    " << comma::verbose.app_name() << " --bags \"*.bag\" --topic some_topic --fields x,y,z --binary 3f --header \\" << std::endl;
     std::cerr << "        | view-points --fields t,block,x,y,z --binary t,ui,3f" << std::endl;
     std::cerr << std::endl;
 }
