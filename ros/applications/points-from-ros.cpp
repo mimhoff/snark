@@ -196,7 +196,8 @@ public:
         const auto& rmap=get_rmap_data_type();
         for(const auto& i : msg_fields)
         {
-            s+=delimiter+comma::csv::format::to_format(rmap.at(i.datatype));
+            s += delimiter + ( i.count > 1 ? boost::lexical_cast< std::string >( i.count ) : "" )
+                + comma::csv::format::to_format( rmap.at( i.datatype ));
             if(delimiter.empty()) { delimiter=","; }
         }
         return s;
