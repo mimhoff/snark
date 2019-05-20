@@ -165,15 +165,50 @@ public:
             default: { COMMA_THROW(comma::exception,"invalid type "<<unsigned(t)); }
         }
     }
+
+    static std::vector< comma::csv::format::types_enum > padding_types( std::size_t num_bytes )
+    {
+        std::vector< comma::csv::format::types_enum > result;
+        std::vector< comma::csv::format::types_enum > candidates = {
+            comma::csv::format::uint64,
+            comma::csv::format::uint32,
+            comma::csv::format::uint16,
+            comma::csv::format::uint8
+        };
+        for( auto candidate: candidates )
+        {
+            while( num_bytes >= comma::csv::format::size_of( candidate ))
+            {
+                result.push_back( candidate );
+                num_bytes -= comma::csv::format::size_of( candidate );
+            }
+        }
+        return result;
+    }
+
     /// returns list of field names from the message
-    static std::string msg_fields_names(const sensor_msgs::PointCloud2::_fields_type& msg_fields)
+    static std::string msg_fields_names( const sensor_msgs::PointCloud2::_fields_type& msg_fields )
     {
         std::string s;
         std::string delimiter;
-        for(const auto& i : msg_fields)
+        std::size_t expected_offset = 0;
+        static unsigned int padding_field_count = 0;
+        const auto& rmap = get_rmap_data_type();
+        for( const auto& f : msg_fields )
         {
-            s+=delimiter+i.name;
-            if(delimiter.empty()) { delimiter=","; }
+            comma::csv::format::types_enum type = rmap.at( f.datatype );
+            if( f.offset > expected_offset )
+            {
+                for( unsigned int i = 0; i < padding_types( f.offset - expected_offset ).size(); ++i )
+                {
+                    s += delimiter + "padding";
+                    if( padding_field_count > 0 ) { s += boost::lexical_cast< std::string >( padding_field_count ); }
+                    padding_field_count++;
+                }
+            }
+            s += delimiter + f.name;
+            expected_offset = f.offset + comma::csv::format::size_of( type ) * f.count;
+            if( delimiter.empty() ) { delimiter = ","; }
         }
         return s;
     }
@@ -189,19 +224,30 @@ public:
         }
         return elements;
     }
-    static std::string msg_fields_format(const sensor_msgs::PointCloud2::_fields_type& msg_fields)
+    static std::string msg_fields_format( const sensor_msgs::PointCloud2::_fields_type& msg_fields )
     {
         std::string s;
         std::string delimiter;
-        const auto& rmap=get_rmap_data_type();
-        for(const auto& i : msg_fields)
+        std::size_t expected_offset = 0;
+        const auto& rmap = get_rmap_data_type();
+        for( const auto& f : msg_fields )
         {
-            s += delimiter + ( i.count > 1 ? boost::lexical_cast< std::string >( i.count ) : "" )
-                + comma::csv::format::to_format( rmap.at( i.datatype ));
-            if(delimiter.empty()) { delimiter=","; }
+            comma::csv::format::types_enum type = rmap.at( f.datatype );
+            if( f.offset > expected_offset )
+            {
+                for( auto t: padding_types( f.offset - expected_offset ))
+                {
+                    s += delimiter + comma::csv::format::to_format( t );
+                }
+            }
+            s += delimiter + ( f.count > 1 ? boost::lexical_cast< std::string >( f.count ) : "" )
+                + comma::csv::format::to_format( type );
+            expected_offset = f.offset + comma::csv::format::size_of( type ) * f.count;
+            if( delimiter.empty() ) { delimiter = ","; }
         }
         return s;
     }
+
     struct bin_base
     {
         virtual ~bin_base() { }
