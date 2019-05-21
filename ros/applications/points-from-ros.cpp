@@ -500,7 +500,6 @@ int main( int argc, char** argv )
         }
         int arrrgc=1;
         ros::init(arrrgc, argv,*node_name,node_options);
-        ros::NodeHandle ros_node;
         points points(options);
         if( !bags_option.empty() )
         {
@@ -529,6 +528,8 @@ int main( int argc, char** argv )
         }
         else
         {
+            if( !ros::master::check() ) { std::cerr << comma::verbose.app_name() << ": roscore appears not to be running, node will wait for it to start" << std::endl; }
+            ros::NodeHandle ros_node;
             ros::TransportHints transport_hints;
             if(max_datagram_size) {transport_hints=ros::TransportHints().maxDatagramSize(*max_datagram_size);}
             ros::Subscriber subsriber=ros_node.subscribe(topic,queue_size,&points::process,&points,transport_hints);
