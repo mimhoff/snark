@@ -76,7 +76,6 @@ void usage(bool detail)
     std::cerr << "usage: " << comma::verbose.app_name() << " [ <options> ]" << std::endl;
     std::cerr << std::endl;
     std::cerr << "options:" << std::endl;
-    std::cerr << "    --ascii: output in ascii (default is binary)" << std::endl;
     std::cerr << "    --bags=[<bags>]: load from rosbags" << std::endl;
     std::cerr << "    --fields=[<names>]: only output listed fields" << std::endl;
     std::cerr << "    --flush: call flush on stdout after each write" << std::endl;
@@ -338,7 +337,6 @@ struct points
     std::vector< std::string > fields;
     comma::csv::format format;
     comma::csv::options csv;
-    bool ascii;
     bool output_fields;
     bool output_format;
     bool flush;
@@ -347,7 +345,6 @@ struct points
 
     points( const comma::command_line_options& options )
         : csv( options )
-        , ascii( options.exists( "--ascii" ))
         , output_fields( options.exists( "--output-fields" ))
         , output_format( options.exists( "--output-format" ))
         , flush( options.exists( "--flush" ))
@@ -361,29 +358,7 @@ struct points
     void process(const sensor_msgs::PointCloud2ConstPtr input);
 
 private:
-    struct writer_base
-    {
-        virtual ~writer_base() { }
-        virtual void write_header(const header& h)=0;
-        virtual void write(const char* buf,uint32_t size)=0;
-    };
-    struct csv_writer : public writer_base
-    {
-        const comma::csv::options& csv;
-        const comma::csv::format& format;
-        comma::csv::ascii<header> header_csv_ascii;
-        csv_writer(const comma::csv::options& csv,const comma::csv::format& format) : csv(csv), format(format), header_csv_ascii("t,block",csv.delimiter) { }
-        void write_header(const header& h)
-        {
-            std::cout<<header_csv_ascii.put(h)<<",";
-        }
-        void write(const char* buf,uint32_t size)
-        {
-            std::string bin_data=format.bin_to_csv(buf,csv.delimiter,csv.precision);
-            std::cout.write(bin_data.data(),bin_data.size())<<std::endl;
-        }
-    };
-    struct bin_writer : public writer_base
+    struct bin_writer
     {
         comma::csv::binary<header> header_csv_bin;
         std::vector<char> header_buf;
@@ -397,6 +372,7 @@ private:
             std::cout.write(buf,size);
         }
     };
+
     struct filter_base
     {
         virtual ~filter_base() { }
@@ -463,10 +439,8 @@ void points::process(const sensor_msgs::PointCloud2ConstPtr input)
         std::unique_ptr<snark::ros::point_cloud::bin_base> bin;
         if(csv.fields.empty()) { bin.reset(new snark::ros::point_cloud::bin_cat(record_size)); }
         else { bin.reset(new snark::ros::point_cloud::bin_shuffle(csv.fields,input->fields)); }
-        
-        std::unique_ptr<writer_base> writer;
-        if(ascii) { writer.reset(new csv_writer(csv,format)); }
-        else { writer.reset(new bin_writer()); }
+
+        bin_writer writer;
         
         std::unique_ptr<filter_base> filter;
         if(discard) { filter.reset(new float_filter(format)); }
@@ -476,8 +450,8 @@ void points::process(const sensor_msgs::PointCloud2ConstPtr input)
             const char* buf=bin->get(reinterpret_cast<const char*>(&input->data[i*record_size]));
             if(!filter || filter->valid(buf,bin->size()))
             {
-                if(write_header) { writer->write_header(header); }
-                writer->write(buf,bin->size());
+                if(write_header) { writer.write_header(header); }
+                writer.write(buf,bin->size());
                 if(flush) { std::cout.flush(); }
             }
             if( !std::cout.good() ) { ros::shutdown(); break; }
