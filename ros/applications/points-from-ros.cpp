@@ -508,19 +508,19 @@ int main( int argc, char** argv )
         points points(options);
         if( !bags_option.empty() )
         {
+            rosbag::Bag bag;
             std::vector< std::string > bag_names;
             for( auto name: comma::split( bags_option, ',' ))
             {
                 std::vector< std::string > expansion = glob( name );
                 bag_names.insert( bag_names.end(), expansion.begin(), expansion.end() );
             }
+            std::vector< std::string > topics;
+            topics.push_back( topic );
             for( auto bag_name: bag_names )
             {
                 comma::verbose << "opening " << bag_name << std::endl;
-                rosbag::Bag bag;
                 bag.open( bag_name );
-                std::vector< std::string > topics;
-                topics.push_back( topic );
                 for( rosbag::MessageInstance const m: rosbag::View( bag, rosbag::TopicQuery( topics )))
                 {
                     sensor_msgs::PointCloud2ConstPtr msg = m.instantiate< sensor_msgs::PointCloud2 >();
