@@ -30,14 +30,20 @@
 #include "file-util.h"
 #include <comma/application/verbose.h>
 #include <iostream>
+#ifndef WIN32
+#include <glob.h>
+#endif
 
 namespace snark { namespace ros {
 
 std::vector< std::string > glob( const std::string& path )
 {
+    std::vector< std::string > path_names;
+    #ifdef WIN32
+    path_names.push_back( path );       // no globbing on Windows
+    #else
     glob_t globbuf;
     int return_val = glob( path.c_str(), GLOB_TILDE, NULL, &globbuf );
-    std::vector< std::string > path_names;
     if( return_val == 0)
     {
         for( std::size_t i = 0; i < globbuf.gl_pathc; ++i )
@@ -47,6 +53,7 @@ std::vector< std::string > glob( const std::string& path )
     }
     else { std::cerr << comma::verbose.app_name() << ": couldn't find " << path << std::endl; }
     globfree( &globbuf );
+    #endif
     return path_names;
 }
 
