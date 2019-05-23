@@ -27,6 +27,7 @@
 // OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#include "../file-util.h"
 #include <comma/application/command_line_options.h>
 #include <comma/application/verbose.h>
 #include <comma/base/exception.h>
@@ -40,7 +41,6 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <unordered_map>
-#include <glob.h>
 
 void bash_completion( unsigned const ac, char const * const * av )
 {
@@ -467,23 +467,6 @@ void points::process(const sensor_msgs::PointCloud2ConstPtr input)
     catch( ... ) { std::cerr << comma::verbose.app_name() << ": " << "unknown exception" << std::endl; ros::shutdown(); }
 }
 
-static std::vector< std::string > glob( const std::string& path )
-{
-    glob_t globbuf;
-    int return_val = glob( path.c_str(), GLOB_TILDE, NULL, &globbuf );
-    std::vector< std::string > path_names;
-    if( return_val == 0)
-    {
-        for( std::size_t i = 0; i < globbuf.gl_pathc; ++i )
-        {
-            path_names.push_back( std::string( globbuf.gl_pathv[i] ));
-        }
-    }
-    else { std::cerr << comma::verbose.app_name() << ": couldn't find " << path << std::endl; }
-    globfree( &globbuf );
-    return path_names;
-}
-
 int main( int argc, char** argv )
 {
     try
@@ -512,7 +495,7 @@ int main( int argc, char** argv )
             std::vector< std::string > bag_names;
             for( auto name: comma::split( bags_option, ',' ))
             {
-                std::vector< std::string > expansion = glob( name );
+                std::vector< std::string > expansion = snark::ros::glob( name );
                 bag_names.insert( bag_names.end(), expansion.begin(), expansion.end() );
             }
             std::vector< std::string > topics;
