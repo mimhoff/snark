@@ -498,13 +498,11 @@ int main( int argc, char** argv )
                 std::vector< std::string > expansion = snark::ros::glob( name );
                 bag_names.insert( bag_names.end(), expansion.begin(), expansion.end() );
             }
-            std::vector< std::string > topics;
-            topics.push_back( topic );
             for( auto bag_name: bag_names )
             {
                 comma::verbose << "opening " << bag_name << std::endl;
                 bag.open( bag_name );
-                for( rosbag::MessageInstance const m: rosbag::View( bag, rosbag::TopicQuery( topics )))
+                for( rosbag::MessageInstance const m: rosbag::View( bag, rosbag::TopicQuery( topic )))
                 {
                     sensor_msgs::PointCloud2ConstPtr msg = m.instantiate< sensor_msgs::PointCloud2 >();
                     points.process( msg );
