@@ -70,14 +70,14 @@ void usage(bool detail)
     std::cerr << std::endl;
     std::cerr << "subscribe to a ROS PointCloud2 topic and output as csv" << std::endl;
     std::cerr << std::endl;
-    std::cerr << "    input: receives messages by subscribing to a ROS topic" << std::endl;
+    std::cerr << "    input: receives messages by subscribing to a ROS topic or reading rosbags" << std::endl;
     std::cerr << "    output: writes data as csv to stdout" << std::endl;
     std::cerr << std::endl;
     std::cerr << "usage: " << comma::verbose.app_name() << " [ <options> ]" << std::endl;
     std::cerr << std::endl;
     std::cerr << "options:" << std::endl;
     std::cerr << "  input" << std::endl;
-    std::cerr << "    --bags=[<bags>]: load from rosbags" << std::endl;
+    std::cerr << "    --bags=[<bags>]: load from rosbags rather than subscribe" << std::endl;
     std::cerr << "    --max-datagram-size: for UDP transport. See ros::TransportHints" << std::endl;
     std::cerr << "    --no-discard: don't discard points with nan or inf in their values"<< std::endl;
     std::cerr << "    --queue-size=[<n>]: ROS Subscriber queue size, default 1" << std::endl;
