@@ -45,9 +45,9 @@ void bash_completion( unsigned const ac, char const * const * av )
 {
     static const char* completion_options =
         " --all"
+        " --frame"
         " --hang-on --stay"
         " --help -h"
-        " --frame"
         " --latch"
         " --node-name"
         " --pass-through --pass"
@@ -72,10 +72,10 @@ void usage(bool detail)
     std::cerr << "options:" << std::endl;
     std::cerr << "    --all: sends all the records as one ros message (when no block field)," << std::endl;
     std::cerr << "           otherwise send each record as a message" << std::endl;
+    std::cerr << "    --frame: ros message frame as string" << std::endl;
     std::cerr << "    --hang-on,--stay: waits about three seconds before exiting so that" << std::endl;
     std::cerr << "                      subscribers can receive the last message" << std::endl;
     std::cerr << "    --help,-h: show help: --help --verbose: show more help" << std::endl;
-    std::cerr << "    --frame: ros message frame as string"<<std::endl;
     std::cerr << "    --latch: ROS publisher option; if true, the last message published on this" << std::endl;
     std::cerr << "             topic will be saved and sent to new subscribers when they connect" << std::endl;
     std::cerr << "    --node-name: node name for this process, when not specified uses" << std::endl;
