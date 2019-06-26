@@ -38,6 +38,7 @@
 #include <thread>
 
 #include "ros/ros.h"
+#include <rosbag/bag.h>
 #include "std_msgs/String.h"
 #include "sensor_msgs/PointCloud2.h"
 
@@ -81,6 +82,7 @@ void usage(bool detail)
     std::cerr << "    --node-name: node name for this process, when not specified uses" << std::endl;
     std::cerr << "                 ros::init_options::AnonymousName flag" << std::endl;
     std::cerr << "    --pass-through,--pass: pass input data to stdout" << std::endl;
+    std::cerr << "    --output,-o=[<bag>]: write to bag rather than publish" << std::endl;
     std::cerr << "    --queue-size=[<n>]: ROS publisher queue size, default 1" << std::endl;
     std::cerr << "    --topic=<topic>: name of topic to publish to" << std::endl;
     std::cerr << "    --verbose,-v: show detailed messages" << std::endl;
@@ -228,7 +230,7 @@ struct points
         , ascii( !csv.binary() )
     {}
 
-    void send( ros::Publisher& publisher, const std::string& frame_id )
+    void send( ros::Publisher* publisher, rosbag::Bag* bag, const std::string& topic, const std::string& frame_id )
     {
         //create msg
         sensor_msgs::PointCloud2 msg=u.create_msg(records.size());
@@ -243,8 +245,13 @@ struct points
             offset+=data_size;
         }
         //send
-        publisher.publish(msg);
-        ros::spinOnce();
+        if( publisher )
+        {
+            publisher->publish(msg);
+            ros::spinOnce();
+        }
+        // save to bag
+        if( bag ) { bag->write( topic, msg.header.stamp, msg ); }
         records.clear();
     }
     void push_back(const comma::csv::input_stream<record>& is, const record& p)
@@ -282,17 +289,32 @@ int main( int argc, char** argv )
         std::string frame_id=options.value<std::string>("--frame","");
         boost::optional<std::string> node_name=options.optional<std::string>("--node-name");
         bool pass_through=options.exists("--pass-through,--pass");
-        int arrrgc=1;
-        uint32_t node_options=0;
-        if(!node_name)
+        std::string output_option = options.value< std::string >( "--output,-o", "" );
+        bool publishing = output_option.empty();
+
+        std::unique_ptr< ros::NodeHandle > ros_node;
+        std::unique_ptr< ros::Publisher > publisher;
+        std::unique_ptr< rosbag::Bag > bag;
+
+        if( publishing )
         {
-            node_name="points_to_ros";
-            node_options=ros::init_options::AnonymousName;
+            int arrrgc = 1;
+            uint32_t node_options = 0;
+            if( !node_name )
+            {
+                node_name = "points_to_ros";
+                node_options = ros::init_options::AnonymousName;
+            }
+            ros::init( arrrgc, argv, *node_name, node_options );
+            ros_node.reset( new ros::NodeHandle );
+            publisher.reset( new ros::Publisher( ros_node->advertise< sensor_msgs::PointCloud2 >( topic, queue_size, options.exists( "--latch" ))));
+            ros::spinOnce();
         }
-        ros::init(arrrgc, argv, *node_name,node_options);
-        ros::NodeHandle ros_node;
-        ros::Publisher publisher=ros_node.advertise<sensor_msgs::PointCloud2>(topic, queue_size,options.exists("--latch"));
-        ros::spinOnce();
+        else
+        {
+            bag.reset( new rosbag::Bag );
+            bag->open( output_option, rosbag::bagmode::Write );
+        }
         comma::csv::input_stream<record> is(std::cin, csv);
         comma::csv::passed<record> passed(is,std::cout,csv.flush);
         unsigned block=0;
@@ -304,15 +326,15 @@ int main( int argc, char** argv )
             if ( ( !p || block != p->block) && !points.records.empty())
             {
                 //send the message
-                points.send(publisher,frame_id);
+                points.send( publisher.get(), bag.get(), topic, frame_id );
             }
             if( !p ) { break; }
             if(pass_through) { passed.write(); }
             block=p->block;
             points.push_back(is,*p);
-            if( !has_block && !all ) { points.send(publisher,frame_id); }
+            if( !has_block && !all ) { points.send( publisher.get(), bag.get(), topic, frame_id ); }
         }
-        if(options.exists("--hang-on,--stay"))
+        if( publishing && options.exists( "--hang-on,--stay" ))
         {
             for(int i=0;i<3;i++)
             {
