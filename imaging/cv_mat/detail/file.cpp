@@ -39,10 +39,10 @@ namespace snark { namespace cv_mat { namespace impl {
     
 template < typename H >
 file< H >::file( const get_timestamp_functor& get_timestamp, const std::string& type, bool no_header, const boost::optional< int >& quality, bool do_index, const std::vector< std::string >& filenames )
-    : type_( type )
+    : get_timestamp_( get_timestamp )
+    , type_( type )
     , quality_( quality )
     , do_index_( do_index )
-    , get_timestamp_( get_timestamp )
     , index_( 0 )
     , filenames_( filenames )
     , count_( 0 )
