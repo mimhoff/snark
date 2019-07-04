@@ -1,4 +1,3 @@
-#include <iostream>
 #include <gtest/gtest.h>
 #include "../frame_transforms.h"
 #include <boost/math/constants/constants.hpp>
