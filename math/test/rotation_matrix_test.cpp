@@ -27,8 +27,10 @@
 // OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include <gtest/gtest.h>
 #include "../rotation_matrix.h"
+#include <comma/math/compare.h>
+#include <gtest/gtest.h>
+#include <cmath>
 
 namespace snark { namespace test {
 
@@ -48,7 +50,7 @@ double deg2rad( double degrees ) { return degrees * M_PI / 180; }
 
     // Quaternions might not be identical but if they represent equivalent
     // rotations then their dot product will be 1 or -1
-    if( fabs( input_q.dot( result_q )) == 1 )
+    if( comma::math::equal( std::fabs( input_q.dot( result_q )), 1, 1e-12 ))
         return ::testing::AssertionSuccess();
     else
         return ::testing::AssertionFailure() << "\nin:\n" << rpy << "\nout:\n" << rpy_after_conversions
@@ -57,9 +59,18 @@ double deg2rad( double degrees ) { return degrees * M_PI / 180; }
 
 TEST( rotation_matrix, roll_pitch_yaw )
 {
-    EXPECT_TRUE( test_rpy( 0, -90, 90 ));
-    EXPECT_TRUE( test_rpy( 0, -89, 90 ));
-    EXPECT_TRUE( test_rpy( 0, -91, 90 ));
+    std::vector< double > angles{ -180, -120, -90, -30, 0, 30, 90, 120, 180 };
+
+    for( auto roll : angles )
+    {
+        for( auto pitch : angles )
+        {
+            for( auto yaw : angles )
+            {
+                EXPECT_TRUE( test_rpy( roll, pitch, yaw ));
+            }
+        }
+    }
 }
 
 } } // namespace snark { namespace test {
