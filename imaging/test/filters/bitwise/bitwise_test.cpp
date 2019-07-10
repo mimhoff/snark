@@ -100,7 +100,7 @@ namespace {
         typedef typename boost::static_visitor< std::pair< boost::function< T ( boost::none_t ) >, bool > >::result_type result_type;
 
         result_type term( const std::string & s ) const {
-            return std::make_pair( [ &s, m = m_ ]( boost::none_t ) -> T { return m.at( s ); }, true );
+            return std::make_pair( [ & ]( boost::none_t ) -> T { return m_.at( s ); }, true );
         }
         result_type op_and( const result_type & opl, const result_type & opr ) const {
             return std::make_pair( [ opl, opr ]( boost::none_t ) -> T { const T & il = opl.first( boost::none ); const T & ir = opr.first( boost::none ); return il & ir; }, opl.second && opr.second );
