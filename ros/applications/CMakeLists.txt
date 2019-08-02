@@ -8,7 +8,9 @@ endif( NOT EXISTS "${ros_path}")
 link_directories( "${ros_path}/lib" )
 include_directories( "${ros_path}/include" )
 
-set( ros_libs roscpp roscpp_serialization rosbag rosbag_storage rostime rosconsole console_bridge cpp_common )
+set( ros_libs roscpp roscpp_serialization rosbag rosbag_storage rostime rosconsole roslz4
+              rosconsole_log4cxx rosconsole_backend_interface
+              console_bridge cpp_common xmlrpcpp )
 
 SET( GLOB stdmsgs_include ${dir}/std_msgs/*.h )
 
