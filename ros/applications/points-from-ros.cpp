@@ -180,6 +180,7 @@ public:
 
     /// returns list of field names from the message
     static std::string msg_fields_names( const sensor_msgs::PointCloud2::_fields_type& msg_fields
+                                       , sensor_msgs::PointCloud2::_point_step_type point_step
                                        , const std::vector< std::string >& field_filter = std::vector< std::string >() )
     {
         if( !field_filter.empty() ) { return comma::join( field_filter, ',' ); }
@@ -189,27 +190,31 @@ public:
         std::size_t expected_offset = 0;
         static unsigned int padding_field_count = 0;
         const auto& rmap = get_rmap_data_type();
+
+        auto add_padding_fields = [&]( std::size_t num_bytes ) {
+            for( unsigned int i = 0; i < padding_types( num_bytes ).size(); ++i )
+            {
+                s += delimiter + "padding";
+                if( padding_field_count > 0 ) { s += boost::lexical_cast< std::string >( padding_field_count ); }
+                padding_field_count++;
+            }
+        };
+
         for( const auto& f : msg_fields )
         {
             comma::csv::format::types_enum type = rmap.at( f.datatype );
-            if( f.offset > expected_offset )
-            {
-                for( unsigned int i = 0; i < padding_types( f.offset - expected_offset ).size(); ++i )
-                {
-                    s += delimiter + "padding";
-                    if( padding_field_count > 0 ) { s += boost::lexical_cast< std::string >( padding_field_count ); }
-                    padding_field_count++;
-                }
-            }
+            add_padding_fields( f.offset - expected_offset );
             s += delimiter + f.name;
             expected_offset = f.offset + comma::csv::format::size_of( type ) * f.count;
             if( delimiter.empty() ) { delimiter = ","; }
         }
+        add_padding_fields( point_step - expected_offset );
         return s;
     }
 
     /// returns csv format from the message, optionally filtered by field name
     static std::string msg_fields_format( const sensor_msgs::PointCloud2::_fields_type& msg_fields
+                                        , sensor_msgs::PointCloud2::_point_step_type point_step
                                         , const std::vector< std::string >& field_filter = std::vector< std::string >() )
     {
         std::string s;
@@ -217,18 +222,20 @@ public:
         std::size_t expected_offset = 0;
         bool add_field;
         const auto& rmap = get_rmap_data_type();
+
+        auto add_padding_formats = [&]( std::size_t num_bytes ) {
+            for( auto t: padding_types( num_bytes ))
+            {
+                s += delimiter + comma::csv::format::to_format( t );
+            }
+        };
+
         for( const auto& f : msg_fields )
         {
             comma::csv::format::types_enum type = rmap.at( f.datatype );
             if( field_filter.empty() )
             {
-                if( f.offset > expected_offset )
-                {
-                    for( auto t: padding_types( f.offset - expected_offset ))
-                    {
-                        s += delimiter + comma::csv::format::to_format( t );
-                    }
-                }
+                add_padding_formats( f.offset - expected_offset );
                 expected_offset = f.offset + comma::csv::format::size_of( type ) * f.count;
                 add_field = true;
             }
@@ -242,6 +249,11 @@ public:
                     + comma::csv::format::to_format( type );
                 if( delimiter.empty() ) { delimiter = ","; }
             }
+        }
+        // pad out to the end of the record
+        if( field_filter.empty() )
+        {
+            add_padding_formats( point_step - expected_offset );
         }
         return s;
     }
@@ -441,27 +453,29 @@ void points::process(const sensor_msgs::PointCloud2ConstPtr input)
 {
     try
     {
+        unsigned record_size = input->point_step;
+
         if( output_fields )
         { 
             if( write_header ) { std::cout << comma::join( comma::csv::names< header >(), ',') << ","; }
-            std::cout << snark::ros::point_cloud::msg_fields_names( input->fields, fields ) << std::endl;
+            std::cout << snark::ros::point_cloud::msg_fields_names( input->fields, record_size, fields ) << std::endl;
             ros::shutdown();
             return;
         }
         if( output_format )
         { 
             if( write_header ) { std::cout << comma::csv::format::value< header >() << ","; }
-            std::cout << snark::ros::point_cloud::msg_fields_format( input->fields, fields ) << std::endl;
+            std::cout << snark::ros::point_cloud::msg_fields_format( input->fields, record_size, fields ) << std::endl;
             ros::shutdown();
             return;
         }
         if( format.count() == 0 )
         {
-            format = comma::csv::format( snark::ros::point_cloud::msg_fields_format( input->fields, fields ));
+            format = comma::csv::format( snark::ros::point_cloud::msg_fields_format( input->fields, record_size, fields ));
             comma::verbose << "setting format to " << format.string() << std::endl;
         }
+
         unsigned count=input->width*input->height;
-        unsigned record_size=input->point_step;
         ::header header(input->header.stamp,input->header.seq);
         
         std::unique_ptr<snark::ros::point_cloud::bin_base> bin;
