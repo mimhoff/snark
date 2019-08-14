@@ -588,7 +588,7 @@ template < typename V > struct join_impl_
             }
             ++count;
         }
-        std::cerr << "points-join: processed " << count << " records; discarded " << discarded << " record" << ( count == 1 ? "" : "s" ) << " with " << ( matching ? "" : "no" ) << " matches" << std::endl;
+        std::cerr << "points-join: processed " << count << " records; discarded " << discarded << " record" << ( discarded == 1 ? "" : "s" ) << " with " << ( matching ? "no " : "" ) << "matches" << std::endl;
         #ifdef SNARK_USE_CUDA
         cuda_deallocate();
         #endif
