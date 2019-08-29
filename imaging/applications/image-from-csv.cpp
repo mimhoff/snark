@@ -125,6 +125,9 @@ static void set_pixel( cv::Mat& m, const input_t& v, const std::pair< double, do
         case CV_8UC1:
             m.at< unsigned char >( y, x ) = v.channels[0];
             break;
+        case CV_16UC1:
+            m.at< comma::uint16 >( y, x ) = v.channels[0];
+            break;
         case CV_32FC1:
             m.at< float >( y, x ) = v.channels[0];
             break;
