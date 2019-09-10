@@ -49,7 +49,7 @@ void bash_completion( unsigned const ac, char const * const * av )
 {
     static char const * const arguments =
         " --help -h --node-name --queue-size"
-        " --from --bags --flush"
+        " --from --bags --flush --one-frame"
         " --to --max-datagram-size --latch --frame-id"
         ;
     std::cout << arguments << std::endl;
@@ -72,6 +72,7 @@ void usage( bool const verbose )
     std::cerr << "    --queue-size=[<n>]; default=1; ROS Subscriber queue size." << std::endl;
     std::cerr << "    --from=<topic>; ros topic, mutually exclusive with --to." << std::endl;
     std::cerr << "        --bags=[<bagfile>]; read from ros bag file." << std::endl;
+    std::cerr << "            --one-frame; exit after outputting one frame." << std::endl;
     std::cerr << "        --flush; flush stream after each stride." << std::endl;
     std::cerr << "    --to=<topic>; ros topic, mutually exclusive with --from." << std::endl;
     std::cerr << "        --frame-id=[<frame_id>]: ros header frame id." << std::endl;
@@ -217,8 +218,8 @@ public:
 
     ros_subscriber( comma::command_line_options const& options )
         : flush( options.exists( "--flush" ) )
-        , output_format( options.exists( "--output-format" ) )
         , from_bag( options.exists( "--bags" ) )
+        , one_frame( options.exists( "--one-frame" ) )
         , topic( options.value< std::string >( "--from" ))
     {
         if( from_bag )
@@ -265,19 +266,26 @@ public:
     {
         if( from_bag )
         {
-            rosbag::Bag bag;
             for( auto bag_name: bag_names )
             {
                 comma::verbose << "opening " << bag_name << std::endl;
-                rosbag::View view_;
-                bag.open( bag_name );
-                for( rosbag::MessageInstance const mi : rosbag::View( bag, rosbag::TopicQuery( topic )))
+                rosbag::Bag bag( bag_name );
+                if( !one_frame )
                 {
-                    if( is_shutdown ) { break; }
+                    for( rosbag::MessageInstance const mi : rosbag::View( bag, rosbag::TopicQuery( topic )))
+                    {
+                        if( is_shutdown ) { break; }
+                        message_type const msg = mi.instantiate< sensor_msgs::Image >();
+                        write( msg );
+                    }
+                }
+                else
+                {
+                    rosbag::MessageInstance const mi = *rosbag::View( bag, rosbag::TopicQuery( topic ) ).begin();
                     message_type const msg = mi.instantiate< sensor_msgs::Image >();
                     write( msg );
+                    break;
                 }
-                bag.close();
             }
         }
         else
@@ -288,8 +296,8 @@ public:
 
 private:
     bool const flush;
-    bool const output_format;
     bool const from_bag;
+    bool const one_frame;
     std::unique_ptr< ros::NodeHandle > node_;
     ros::Subscriber subscriber_;
     std::vector< std::string > bag_names;
@@ -362,7 +370,7 @@ int main( int ac, char* av[] )
     {
         comma::command_line_options options( ac, av, usage );
         if( options.exists( "--bash-completion" ) ) bash_completion( ac, av );
-        options.assert_mutually_exclusive( "--from,--flush,--output-fields", "--to,--dimensions,--dim,--input-fields" );
+        options.assert_mutually_exclusive( "--from,--flush,--one-frame", "--to,--dimensions,--dim,--input-fields" );
 
         ros_execute( av, options );
     }
