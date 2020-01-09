@@ -6,5 +6,5 @@ file( GLOB ouster_view_includes ${ouster_view_src_dir}/*.h )
 
 source_group( ouster-view FILES ouster-view.cpp ${ouster_view_sources} ${ouster_view_includes} )
 add_executable( ouster-view ouster-view.cpp ${ouster_view_sources} ${ouster_view_includes} )
-target_link_libraries( ouster-view snaark_ouster )
+target_link_libraries( ouster-view snark_ouster )
 install( TARGETS ouster-view RUNTIME DESTINATION ${snark_INSTALL_BIN_DIR} COMPONENT Runtime )
