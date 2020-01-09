@@ -1,0 +1,153 @@
+#!/bin/bash
+
+scriptname=$( basename $0 )
+
+source $( type -p comma-application-util ) || { echo "$scriptname: cannot source comma-application-util" >&2; exit 1; }
+
+function description()
+{
+    cat <<EOF
+--help,-h;        show this help and exit
+--verbose,-v;     show more information
+--output-fields;  show output fields and exit
+--output-format;  show output format and exit
+--port=<port>;    default=7501; command port
+EOF
+}
+
+function usage()
+{
+    cat <<EOF >&2
+
+get data from the Ouster OS-1 lidar
+
+usage: $scriptname <operation> <lidar-ip> <host-ip> [<options>]
+       $scriptname <lidar|imu> --output-fields
+       $scriptname <lidar|imu> --output-format
+
+    where <operation> is one of "init", "lidar" or "imu"
+        "init" initializes the device with the address of the host
+        "lidar" streams lidar data
+        "imu" streams imu data
+
+    if required "lidar" and "imu" will perform an "init" first
+
+options:
+EOF
+    description | sed 's/^/    /g' >&2
+    cat <<EOF >&2
+
+examples:
+    $scriptname lidar os1-991832000987.local 192.168.1.1
+    $scriptname lidar --output-fields
+
+EOF
+    exit 0
+}
+
+function say() { echo "$scriptname: $@" >&2; }
+function verbose() { (( options_verbose )) && say "$@"; }
+function die() { say "$@"; exit 1; }
+
+(( $( comma_options_has "--bash-completion" $@ ) )) && { description | comma_options_to_bash_completion; exit 0; }
+(( $( comma_options_has "--help" $@ ) || $( comma_options_has "-h" $@ ) )) && usage
+
+options="$( description | comma-options-to-name-value "$@" )"
+comma_path_value_to_var --prefix=options < <( echo "$options" | grep '=' )
+
+unnamed_options=( $( echo "$options" | grep -v '=' | sed 's/^"//g; s/"$//g' | tr '\n' ' ' ) )
+(( ${#unnamed_options[@]} >= 1 )) || die "requires operation"
+
+operation=${unnamed_options[0]}
+
+function prefix { csv-fields prefix --path $1; }
+
+function output_fields()
+{
+    case $1 in
+        lidar)
+            local channel_fields=$( seq -w 0 63 | sed 's/^/channel_/' | while read line; do seq 0 2 | sed "s/^/${line}_data_/"; done | tr '\n' , | sed 's/,$//' )
+            echo "timestamp,measurement_id,encoder_count,$channel_fields,packet_status"
+            ;;
+        imu)
+            echo $( echo start,accel,gyro | prefix time ),$( echo x,y,z | prefix accel ),$( echo -n x,y,z | prefix angular_accel )
+            ;;
+        *) die "unknown operation: $1"
+    esac
+}
+
+function output_format()
+{
+    case $1 in
+        lidar) echo "ul,2ui,192ui,ui" ;;
+        imu)   echo "3ul,3ui,3ui" ;;
+        *) die "unknown operation: $1"
+    esac
+}
+
+(( $( comma_options_has --output-fields "$@" ) )) && { output_fields $operation; exit 0; }
+(( $( comma_options_has --output-format "$@" ) )) && { output_format $operation; exit 0; }
+
+(( ${#unnamed_options[@]} == 3 )) || die "requires operation, lidar host and local host ip"
+lidar=${unnamed_options[1]}
+host_ip=${unnamed_options[2]}
+
+
+lidar_packet_size=$(( 16 * 197 * 4 ))
+imu_packet_size=$(( 12 * 4 ))
+
+# send stdout to stderr
+function log_stdout()
+{
+    sed "s/^/$scriptname: /" >&2
+}
+
+function run_cmd()
+{
+    echo $1 | socat tcp:$lidar:$options_port -
+}
+
+function reinitialize()
+{
+    verbose "status=$( run_cmd get_sensor_info | name-value-get status )"
+    run_cmd "reinitialize"
+    local status=$( run_cmd get_sensor_info | name-value-get status )
+    while [[ $status != "RUNNING" ]]; do
+        verbose "status=$status"
+        sleep 1
+        status=$( run_cmd get_sensor_info | name-value-get status 2> /dev/null )
+    done
+    verbose "status=$status"
+}
+
+function initialize()
+{
+    ping -c1 -W1 $lidar >/dev/null || die "$lidar is not reachable"
+
+    run_cmd "get_sensor_info"
+    verbose "status=$( run_cmd get_sensor_info | name-value-get status )"
+    udp_port_lidar=$( run_cmd "get_config_param active udp_port_lidar" )
+    udp_port_imu=$( run_cmd "get_config_param active udp_port_imu" )
+    verbose "lidar port=$udp_port_lidar"
+    verbose "imu port=$udp_port_imu"
+    run_cmd "set_config_param udp_ip $host_ip"
+    reinitialize                    # to set the udp_ip
+}
+
+function stream()
+{
+    [[ $( run_cmd "get_config_param active udp_ip" ) == $host_ip ]] || initialize | log_stdout
+    local port=$( run_cmd "get_config_param active $1" )
+    local packet_size=$2
+    local transfer_block_option=
+    (( packet_size > 8192 )) && transfer_block_option="-b$packet_size"
+    verbose "streaming $packet_size byte packets from port $port"
+    socat $transfer_block_option -u udp-listen:$port -
+}
+
+case $operation in
+    init)  initialize ;;
+    lidar) stream udp_port_lidar $lidar_packet_size ;;
+    imu)   stream udp_port_imu $imu_packet_size ;;
+    *)     die "requires operation"
+esac
