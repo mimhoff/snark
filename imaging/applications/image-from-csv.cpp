@@ -128,9 +128,21 @@ static void set_pixel( cv::Mat& m, const input_t& v, const std::pair< double, do
         case CV_16UC1:
             m.at< comma::uint16 >( y, x ) = v.channels[0];
             break;
+        case CV_32SC1:
+            m.at< comma::int32 >( y, x ) = v.channels[0];
+            break;
         case CV_32FC1:
             m.at< float >( y, x ) = v.channels[0];
             break;
+        case CV_8UC4:
+        {
+            cv::Vec4b& p = m.at< cv::Vec4b >( y, x );
+            p[0] = v.channels[0];
+            p[1] = v.channels[1];
+            p[2] = v.channels[2];
+            p[3] = v.channels[3];
+            break;
+        }
         case CV_8UC3:
         {
             cv::Vec3b& p = m.at< cv::Vec3b >( y, x );

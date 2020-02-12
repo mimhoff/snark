@@ -300,7 +300,7 @@ IF( snark_system_manager STREQUAL "auto" )
     MESSAGE( STATUS "auto detected system manager: ${snark_system_manager}" )
 ENDIF( snark_system_manager STREQUAL "auto" )
 
-IF( snark_build_imaging )
+IF( snark_build_imaging OR snark_build_sensors_ouster )
     OPTION( CUDA_USE_STATIC_CUDA_RUNTIME "use static cuda runtime, enabling seems to cause lots of linking grief with some installations" OFF )
     IF( WIN32 )
         SET( OpenCV_STATIC OFF )
@@ -318,7 +318,7 @@ IF( snark_build_imaging )
         endif( snark_build_imaging_stereo )
         set( snark_build_imaging_stereo OFF CACHE BOOL "" FORCE )
     endif( ${OpenCV_VERSION_MAJOR} GREATER 2 )
-ENDIF( snark_build_imaging )
+ENDIF( snark_build_imaging OR snark_build_sensors_ouster )
 
 if( snark_build_graphics )
     SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_graphics_qt3d-d
@@ -338,10 +338,10 @@ if( snark_build_point_cloud )
                              optimized snark_point_cloud )
 endif( snark_build_point_cloud )
 
-if( snark_build_imaging )
+if( snark_build_imaging OR snark_build_sensors_ouster )
     SET( snark_ALL_LIBRARIES ${snark_ALL_LIBRARIES} debug snark_imaging-d
                              optimized snark_imaging )
-endif( snark_build_imaging )
+endif( snark_build_imaging OR snark_build_sensors_ouster )
 
 # todo: uncomment, once implemented
 # if( snark_build_navigation )
@@ -536,9 +536,9 @@ ENDIF( snark_build_python AND ADD_PYTHON_PACKAGES_TO_RPM )
 
 # Additional Win32 handling for CPack.
 IF( WIN32 )
-    if( snark_build_imaging )
+    if( snark_build_imaging OR snark_build_sensors_ouster )
         file( GLOB OpenCV_DLLS ${OpenCV_LIB_PATH}/../bin/*.dll ) #from opencv version 2.4
-    endif( snark_build_imaging )
+    endif( snark_build_imaging OR snark_build_sensors_ouster )
 
     if( snark_build_graphics )
         get_filename_component( QT_BIN_DIR ${QT_QMAKE_EXECUTABLE} PATH )

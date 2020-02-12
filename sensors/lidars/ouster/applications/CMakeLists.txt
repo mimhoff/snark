@@ -8,7 +8,7 @@ install( TARGETS ouster-align RUNTIME DESTINATION ${snark_INSTALL_BIN_DIR} COMPO
 
 source_group( ouster-cv FILES ouster-cv.cpp )
 add_executable( ouster-cv ouster-cv.cpp )
-target_link_libraries( ouster-cv snark_ouster )
+target_link_libraries( ouster-cv snark_imaging snark_ouster )
 install( TARGETS ouster-cv RUNTIME DESTINATION ${snark_INSTALL_BIN_DIR} COMPONENT Runtime )
 
 source_group( ouster-to-csv FILES ouster-to-csv.cpp )
