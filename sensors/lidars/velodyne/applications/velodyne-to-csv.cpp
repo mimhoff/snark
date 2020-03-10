@@ -121,6 +121,7 @@ static void usage( bool )
     std::cerr << "output options:" << std::endl;
     std::cerr << "    --binary,-b[=<format>]: if present, output in binary equivalent of csv" << std::endl;
     std::cerr << "    --fields <fields>: e.g. t,x,y,z,scan" << std::endl;
+    std::cerr << "    --flush: if present, flush output stream after each write" << std::endl;
     std::cerr << "    --min-range=<value>: do not output points closer than <value>; default 0" << std::endl;
     std::cerr << "    --max-range=<value>: do not output points farther away than <value>; default output all points" << std::endl;
     std::cerr << "    --ntp=[<threshold>],[<\"permissive\">]: get data timestamps from ntp data in packets (default: system time from input stream)" << std::endl;
@@ -260,6 +261,7 @@ int main( int ac, char** av )
     {
         comma::command_line_options options( ac, av, usage );
         bool verbose = options.exists( "--verbose,-v" );
+        bool flush = options.exists( "--flush" );
         if( options.exists( "--output-fields" ) ) { std::cout << comma::join( comma::csv::names< snark::velodyne_point >(), ',' ) << std::endl; return 0; }
         std::string fields = fields_( options.value< std::string >( "--fields", "" ) );
         comma::csv::format format = format_( options.value< std::string >( "--binary,-b", "" ), fields );
@@ -375,6 +377,7 @@ int main( int ac, char** av )
                         for(const auto& i : points)
                         {
                             ostream.write(i);
+                            if(flush) { ostream.flush(); }
                         }
                     }
                     points.clear();
@@ -385,6 +388,7 @@ int main( int ac, char** av )
             else
             {
                 ostream.write( p );
+                if(flush) { ostream.flush(); }
             }
         }
         //Profilerstop(); }
