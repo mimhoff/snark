@@ -28,7 +28,7 @@
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sstream>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <comma/application/verbose.h>
 #include <comma/name_value/map.h>
 
@@ -63,11 +63,11 @@ camera::name_values camera::info() const
 {
     name_values name_value_pairs;
 
-    add_name_value( "id",            boost::bind( &AVT::VmbAPI::Camera::GetID,           boost::cref( *camera_ ), _1 ), name_value_pairs );
-    add_name_value( "name",          boost::bind( &AVT::VmbAPI::Camera::GetName,         boost::cref( *camera_ ), _1 ), name_value_pairs );
-    add_name_value( "model",         boost::bind( &AVT::VmbAPI::Camera::GetModel,        boost::cref( *camera_ ), _1 ), name_value_pairs );
-    add_name_value( "serial_number", boost::bind( &AVT::VmbAPI::Camera::GetSerialNumber, boost::cref( *camera_ ), _1 ), name_value_pairs );
-    add_name_value( "interface_id",  boost::bind( &AVT::VmbAPI::Camera::GetInterfaceID,  boost::cref( *camera_ ), _1 ), name_value_pairs );
+    add_name_value( "id",            boost::bind( &AVT::VmbAPI::Camera::GetID,           boost::cref( *camera_ ), boost::placeholders::_1 ), name_value_pairs );
+    add_name_value( "name",          boost::bind( &AVT::VmbAPI::Camera::GetName,         boost::cref( *camera_ ), boost::placeholders::_1 ), name_value_pairs );
+    add_name_value( "model",         boost::bind( &AVT::VmbAPI::Camera::GetModel,        boost::cref( *camera_ ), boost::placeholders::_1 ), name_value_pairs );
+    add_name_value( "serial_number", boost::bind( &AVT::VmbAPI::Camera::GetSerialNumber, boost::cref( *camera_ ), boost::placeholders::_1 ), name_value_pairs );
+    add_name_value( "interface_id",  boost::bind( &AVT::VmbAPI::Camera::GetInterfaceID,  boost::cref( *camera_ ), boost::placeholders::_1 ), name_value_pairs );
 
     return name_value_pairs;
 }

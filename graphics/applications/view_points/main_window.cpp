@@ -96,7 +96,7 @@ MainWindow::MainWindow( const std::string& title, const std::shared_ptr<snark::g
     resize( 640, 480 );
 
     m_viewMenu = menuBar()->addMenu( "View" );
-    ToggleAction* action = new ToggleAction( "File Panel", boost::bind( &MainWindow::toggleFileFrame, this, _1 ) );
+    ToggleAction* action = new ToggleAction( "File Panel", boost::bind( &MainWindow::toggleFileFrame, this, boost::placeholders::_1 ) );
     action->setChecked( m_fileFrameVisible );
     m_viewMenu->addAction( action );
     updateFileFrame();
@@ -158,7 +158,7 @@ void MainWindow::updateFileFrame() // quick and dirty
         }
         if( !sameFields ) { title += ": \"" + controller->readers[i]->options.fields + "\""; }
         m_fileLayout->addWidget( new QLabel( title.c_str() ), i + 1, 0, Qt::AlignLeft | Qt::AlignTop );
-        CheckBox* viewBox = new CheckBox( boost::bind( &Reader::show, boost::ref( *controller->readers[i] ), _1 ) );
+        CheckBox* viewBox = new CheckBox( boost::bind( &Reader::show, boost::ref( *controller->readers[i] ), boost::placeholders::_1 ) );
         viewBox->setCheckState( controller->readers[i]->show() ? Qt::Checked : Qt::Unchecked );
         connect( viewBox, SIGNAL( toggled( bool ) ), this, SLOT( update_view() ) ); // redraw when box is toggled
         viewBox->setToolTip( ( std::string( "check to make " ) + title + " visible" ).c_str() );
@@ -176,7 +176,7 @@ void MainWindow::updateFileFrame() // quick and dirty
     for( FileGroupMap::const_iterator it = m_userGroups.begin(); it != m_userGroups.end(); ++it, ++i )
     {
         m_fileLayout->addWidget( new QLabel( ( "\"" + it->first + "\"" ).c_str() ), i, 0, Qt::AlignLeft | Qt::AlignTop );
-        CheckBox* viewBox = new CheckBox( boost::bind( &MainWindow::showFileGroup, this, it->first, _1 ) );
+        CheckBox* viewBox = new CheckBox( boost::bind( &MainWindow::showFileGroup, this, it->first, boost::placeholders::_1 ) );
         //viewBox->setCheckState( Qt::Checked );
         viewBox->setToolTip( ( std::string( "check to make files within group \"" ) + it->first + "\" visible" ).c_str() );
         m_fileLayout->addWidget( viewBox, i, 1, Qt::AlignRight | Qt::AlignTop );
@@ -186,7 +186,7 @@ void MainWindow::updateFileFrame() // quick and dirty
     for( FileGroupMap::const_iterator it = m_fieldsGroups.begin(); it != m_fieldsGroups.end(); ++it, ++i )
     {
         m_fileLayout->addWidget( new QLabel( ( "\"" + it->first + "\"" ).c_str() ), i, 0, Qt::AlignLeft | Qt::AlignTop );
-        CheckBox* viewBox = new CheckBox( boost::bind( &MainWindow::showFileGroup, this, it->first, _1 ) );
+        CheckBox* viewBox = new CheckBox( boost::bind( &MainWindow::showFileGroup, this, it->first, boost::placeholders::_1 ) );
         //viewBox->setCheckState( Qt::Checked );
         viewBox->setToolTip( ( std::string( "check to make files with fields \"" ) + it->first + "\" visible" ).c_str() );
         m_fileLayout->addWidget( viewBox, i, 1, Qt::AlignRight | Qt::AlignTop );

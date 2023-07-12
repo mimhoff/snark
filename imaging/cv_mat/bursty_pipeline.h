@@ -29,8 +29,8 @@
 
 #pragma once
 
-#include <tbb/pipeline.h>
-#include <tbb/task_scheduler_init.h>
+#include <tbb/parallel_pipeline.h>
+#include <tbb/task_arena.h>
 #include "../../tbb/bursty_reader.h"
 
 namespace snark { namespace tbb {
@@ -45,7 +45,7 @@ public:
     /// @param number_of_threads maximum number of threads, 0 means auto
     bursty_pipeline( unsigned int number_of_threads = 0 );
     
-    void run( bursty_reader< T >& reader, const ::tbb::filter_t< T, void >& filter );
+    void run( bursty_reader< T >& reader, const ::tbb::filter< T, void >& filter );
 
 private:
     unsigned int number_of_threads_;
@@ -53,10 +53,10 @@ private:
 
 
 template< typename T >
-inline bursty_pipeline< T >::bursty_pipeline( unsigned int number_of_threads ) : number_of_threads_( number_of_threads > 0 ? number_of_threads : ::tbb::task_scheduler_init::default_num_threads() ) {}
+inline bursty_pipeline< T >::bursty_pipeline( unsigned int number_of_threads ) : number_of_threads_( number_of_threads > 0 ? number_of_threads : ::tbb::this_task_arena::max_concurrency() ) {}
 
 template< typename T >
-inline void bursty_pipeline< T >::run( bursty_reader< T >& reader, const ::tbb::filter_t< T, void >& filter )
+inline void bursty_pipeline< T >::run( bursty_reader< T >& reader, const ::tbb::filter< T, void >& filter )
 {
     ::tbb::parallel_pipeline( number_of_threads_, reader.filter() & filter );
 }

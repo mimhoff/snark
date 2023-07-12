@@ -30,8 +30,9 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
-#include <boost/bind.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
+#include <boost/bind/bind.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/calib3d.hpp>
 #include <comma/application/verbose.h>
 #include <comma/base/exception.h>
 #include <comma/base/types.h>

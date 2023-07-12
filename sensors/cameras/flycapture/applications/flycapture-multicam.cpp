@@ -27,10 +27,10 @@
 // OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/thread.hpp>
 #include <tbb/concurrent_queue.h>
-#include <tbb/pipeline.h>
+#include <tbb/parallel_pipeline.h>
 #include <tbb/task_scheduler_init.h>
 #include <comma/application/command_line_options.h>
 #include <comma/base/exception.h>

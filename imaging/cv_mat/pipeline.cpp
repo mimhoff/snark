@@ -27,8 +27,7 @@
 // OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include <boost/bind.hpp>
-#include <tbb/tbb_thread.h>
+#include <boost/bind/bind.hpp>
 #include <comma/base/last_error.h>
 #include "pipeline.h"
 
@@ -112,24 +111,24 @@ void pipeline< H >::setup_pipeline_()
 {
     if( m_filters.empty() )
     {
-        m_filter = ::tbb::filter_t< pair, void >( ::tbb::filter::serial_in_order, boost::bind( &pipeline< H >::write_, this, _1 ) );
+        m_filter = ::tbb::filter< pair, void >( ::tbb::filter_mode::serial_in_order, boost::bind( &pipeline< H >::write_, this, boost::placeholders::_1 ) );
     }
     else
     {
-        ::tbb::filter_t< pair, pair > all_filters;
+        ::tbb::filter< pair, pair > all_filters;
         bool has_null = false;
         for( std::size_t i = 0; i < m_filters.size(); ++i )
         {
-            ::tbb::filter::mode mode = ::tbb::filter::serial_in_order;
+            ::tbb::filter_mode mode = ::tbb::filter_mode::serial_in_order;
             if( m_filters[i].parallel )
             {
-                mode = ::tbb::filter::parallel;
+                mode = ::tbb::filter_mode::parallel;
             }
             if( !m_filters[i].filter_function ) { has_null = true; break; }
-            ::tbb::filter_t< pair, pair > filter( mode, boost::bind( m_filters[i].filter_function, _1 ) );
+            ::tbb::filter< pair, pair > filter( mode, boost::bind( m_filters[i].filter_function, boost::placeholders::_1 ) );
             all_filters = i == 0 ? filter : ( all_filters & filter );
         }
-        m_filter = all_filters & ::tbb::filter_t< pair, void >( ::tbb::filter::serial_in_order, boost::bind( has_null ? &pipeline< H >::null_ : &pipeline< H >::write_, this, _1 ) );
+        m_filter = all_filters & ::tbb::filter< pair, void >( ::tbb::filter_mode::serial_in_order, boost::bind( has_null ? &pipeline< H >::null_ : &pipeline< H >::write_, this, boost::placeholders::_1 ) );
     }
 }
 

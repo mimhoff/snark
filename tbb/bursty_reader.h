@@ -29,13 +29,12 @@
 
 #pragma once
 
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/function.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/thread.hpp>
 #include <tbb/concurrent_queue.h>
-#include <tbb/pipeline.h>
-#include <tbb/tbb_exception.h>
+#include <tbb/parallel_pipeline.h>
 
 namespace snark { namespace tbb {
 
@@ -65,7 +64,7 @@ class bursty_reader
         
         void join();
         
-        ::tbb::filter_t< void, T >& filter() { return filter_; }
+        ::tbb::filter< void, T >& filter() { return filter_; }
 
     private:
         T read_( ::tbb::flow_control& flow );
@@ -75,7 +74,7 @@ class bursty_reader
         unsigned int size_;
         bool running_;
         boost::function0< T > produce_;
-        ::tbb::filter_t< void, T > filter_;
+        ::tbb::filter< void, T > filter_;
         boost::scoped_ptr< boost::thread > thread_;
 };
 
@@ -84,7 +83,7 @@ bursty_reader< T >::bursty_reader( boost::function0< T > produce, unsigned int s
     : size_( size )
     , running_( true )
     , produce_( produce )
-    , filter_( ::tbb::filter::serial_in_order, boost::bind( &bursty_reader< T >::read_, this, _1 ) )
+    , filter_( ::tbb::filter_mode::serial_in_order, boost::bind( &bursty_reader< T >::read_, this, boost::placeholders::_1 ) )
 {
     if( capacity > 0 ) { queue_.set_capacity( capacity ); }
     thread_.reset( new boost::thread( boost::bind( &bursty_reader< T >::produce_loop_, this ) ) );

@@ -27,7 +27,7 @@
 // OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <comma/application/signal_flag.h>
 #include <comma/application/verbose.h>
 #include <comma/base/exception.h>
@@ -384,7 +384,7 @@ int main( int argc, char** argv )
         int exit_code = 0;
         while( acquiring )
         {
-            camera.start_acquisition( boost::bind( &output_frame, _1, boost::ref( serialization ), boost::ref( camera ) ), num_frames );
+            camera.start_acquisition( boost::bind( &output_frame, boost::placeholders::_1, boost::ref( serialization ), boost::ref( camera ) ), num_frames );
             comma::signal_flag is_shutdown;
             long frames_delivered = 0;
             do {

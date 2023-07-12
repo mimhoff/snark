@@ -29,7 +29,7 @@
 
 /// @author Vsevolod Vlaskine
 
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include "stream.h"
 #include "traits.h"
 

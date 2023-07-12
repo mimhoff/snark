@@ -38,7 +38,7 @@
 #include <cmath>
 #include <string.h>
 #include <fstream>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/optional.hpp>
 #include <tbb/parallel_for.h>
 #include <comma/application/command_line_options.h>
@@ -225,7 +225,7 @@ int main( int argc, char** argv )
                 if( records.empty() ) { break; }
                 if( verbose ) { std::cerr << "points-rays: block " << records[0].first.block << ": loaded " << records.size() << " points in a grid of size " << grid.size() << " voxels" << std::endl; }
                 if( verbose ) { std::cerr << "points-rays: block " << records[0].first.block << ": tracing..." << std::endl; }
-                tbb::parallel_for( tbb::blocked_range< std::size_t >( 0, records.size(), records.size() / 4 ), boost::bind( &trace_points, _1, boost::ref( records ), boost::cref( grid ), threshold ) );
+                tbb::parallel_for( tbb::blocked_range< std::size_t >( 0, records.size(), records.size() / 4 ), boost::bind( &trace_points, boost::placeholders::_1, boost::ref( records ), boost::cref( grid ), threshold ) );
                 if( verbose ) { std::cerr << "points-rays: block " << records[0].first.block << ": outputting..." << std::endl; }
                 for( std::size_t i = 0; i < records.size(); ++i )
                 {

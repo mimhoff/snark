@@ -91,7 +91,7 @@ class pipeline
         void setup_pipeline_();
 
         cv_mat::serialization& m_output;
-        ::tbb::filter_t< pair, void > m_filter;
+        ::tbb::filter< pair, void > m_filter;
         std::vector< filter_type > m_filters;
         tbb::bursty_reader< pair >& m_reader;
         tbb::bursty_pipeline< pair > m_pipeline;

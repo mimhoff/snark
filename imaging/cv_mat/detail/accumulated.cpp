@@ -33,7 +33,7 @@
 #include <vector>
 #include <functional>
 #include <boost/date_time/posix_time/ptime.hpp>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <tbb/parallel_for.h>
 #include <tbb/blocked_range.h>
 #include "../depth_traits.h"
@@ -71,7 +71,7 @@ template< typename H, int DepthIn >
 static void divide_by_rows( const cv::Mat& m, cv::Mat& result, const apply_function& fn, comma::uint64 count )
 {
     tbb::parallel_for( tbb::blocked_range< std::size_t >( 0, m.rows ), 
-                       boost::bind( &iterate_pixels< DepthIn >, _1, m, boost::ref( result ), boost::ref(fn), count ) );
+                       boost::bind( &iterate_pixels< DepthIn >, boost::placeholders::_1, m, boost::ref( result ), boost::ref(fn), count ) );
 }
 
 template< typename H >
